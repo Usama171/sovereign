@@ -77,7 +77,7 @@ async def resources(
 ) -> HTMLResponse:
     logger: FilteringBoundLogger = get_named_logger(
         f"{__name__}.{resources.__qualname__} ({__file__})",
-        level=logging.DEBUG,
+        level=logging.INFO,
     )
 
     ret: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
@@ -165,7 +165,7 @@ async def resource(
 ) -> Response:
     logger: FilteringBoundLogger = get_named_logger(
         f"{__name__}.{resources.__qualname__} ({__file__})",
-        level=logging.DEBUG,
+        level=logging.INFO,
     )
 
     mock_request = mock_discovery_request(
@@ -208,6 +208,7 @@ async def resource(
     )
 
 
+# noinspection DuplicatedCode
 @router.get(
     "/resources/routes/{route_configuration}/{virtual_host}",
     summary="Return JSON representation of Virtual Hosts",
@@ -228,7 +229,7 @@ async def virtual_hosts(
 ) -> Response:
     logger: FilteringBoundLogger = get_named_logger(
         f"{__name__}.{virtual_hosts.__qualname__} ({__file__})",
-        level=logging.DEBUG,
+        level=logging.INFO,
     )
 
     mock_request = mock_discovery_request(
@@ -241,10 +242,26 @@ async def virtual_hosts(
 
     logger.debug("Making mock request", mock_request=mock_request)
 
-    if response := await reader.blocking_read(mock_request):  # ty: ignore[possibly-missing-attribute]
+    entry: Entry | None = None
+
+    if config.worker_v2_enabled:
+        # we're set up to use v2 of the worker
+        discovery_response = await wait_for_discovery_response(mock_request)
+        if discovery_response is not None:
+            entry = Entry(
+                text=discovery_response.model_dump_json(indent=None),
+                len=len(discovery_response.resources),
+                version=discovery_response.version_info,
+                node=mock_request.node,
+            )
+
+    else:
+        entry = await reader.blocking_read(mock_request)  # ty: ignore[possibly-missing-attribute]
+
+    if entry:
         route_configs = [
             resource_
-            for resource_ in json.loads(response.text).get("resources", [])
+            for resource_ in json.loads(entry.text).get("resources", [])
             if resource_["name"] == route_configuration
         ]
         for route_config in route_configs:

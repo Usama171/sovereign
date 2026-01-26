@@ -4,7 +4,7 @@ import sys
 import toml
 
 VERSION = re.compile(
-    r"(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?P<prerelease>a|b|rc)?(?P<number>\d+)?"
+    r"(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?P<prerelease>a|b|rc)?(?P<number>\d+)?(-\d+|\.post\d+)?"
 )
 
 

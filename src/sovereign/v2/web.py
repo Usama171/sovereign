@@ -28,7 +28,7 @@ async def wait_for_discovery_response(
         level=logging.DEBUG,
     ).bind(
         request_hash=request_hash,
-        template_resource_type=request.template.resource_type,
+        template=request.template.resource_type,
         process_id=os.getpid(),
         thread_id=threading.get_ident(),
     )

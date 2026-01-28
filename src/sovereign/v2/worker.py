@@ -176,6 +176,9 @@ class Worker:
                 active_nodes = self.worker_node_repository.count_active_nodes()
                 stats.gauge("v2.worker.active_nodes", active_nodes)
 
+                queue_size = self.queue.size()
+                stats.gauge("v2.worker.queue_size", queue_size)
+
                 name: str
                 loadable: Loadable
                 for name, loadable in config.template_context.context.items():

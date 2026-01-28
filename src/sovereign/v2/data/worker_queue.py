@@ -33,6 +33,8 @@ class QueueProtocol(Protocol):
 
     def ack(self, receipt_handle: str) -> bool: ...
 
+    def size(self) -> int: ...
+
 
 class InMemoryQueue(QueueProtocol):
     """
@@ -127,6 +129,9 @@ class InMemoryQueue(QueueProtocol):
 
     def is_empty(self) -> bool:
         return not self._messages
+
+    def size(self) -> int:
+        return len(self._messages)
 
 
 class SqliteQueue(QueueProtocol):
@@ -271,3 +276,13 @@ class SqliteQueue(QueueProtocol):
                 receipt_handle=receipt_handle,
             )
             return False
+
+    def size(self) -> int:
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.execute("SELECT COUNT(*) FROM queue")
+                row = cursor.fetchone()
+                return row[0] if row else 0
+        except Exception:
+            self.logger.exception("Failed to get queue size from SQLite queue")
+            return 0

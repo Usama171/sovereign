@@ -48,7 +48,7 @@ class Worker:
         self.node_id = (
             node_id
             if node_id is not None
-            else f"{time.time()}{os.getpid()}{random.randint(0, 1000000)}"
+            else f"{time.time()}.{os.getpid()}.{random.randint(0, 1000000)}"
         )
 
         data_store = data_store if data_store is not None else get_data_store()
@@ -85,6 +85,17 @@ class Worker:
                     job_logger = job_logger.bind(job_type=job_type, job=message.job)
 
                     self.process_job(message.job)
+
+                    # Emit metric for queue-to-completion time
+                    queue_to_completion_time_ms = (
+                        time.time() - message.job.created_at
+                    ) * 1000
+                    stats.timing(
+                        "v2.worker.queue.queue_to_completion_ms",
+                        queue_to_completion_time_ms,
+                        tags=[f"job_type:{job_type}"],
+                    )
+
                     self.queue.ack(message.receipt_handle)
                     stats.increment(
                         "v2.worker.queue.message_acked", tags=[f"job_type:{job_type}"]
@@ -94,8 +105,7 @@ class Worker:
                 job_logger.exception("Error while processing job")
 
     def process_job(self, job: QueueJob):
-        self.logger.info(
-            "Processing job from queue",
+        logger = self.logger.bind(
             job_type=type(job),
             job=job,
             node_id=self.node_id,
@@ -105,6 +115,9 @@ class Worker:
 
         match job:
             case RefreshContextJob():
+                logger = logger.bind(name=job.context_name)
+                logger.info("Processing job from queue")
+
                 refresh_context(
                     job.context_name,
                     self.node_id,
@@ -114,6 +127,9 @@ class Worker:
                     self.queue,
                 )
             case RenderDiscoveryJob():
+                logger = logger.bind(request_hash=job.request_hash)
+                logger.info("Processing job from queue")
+
                 render_discovery_response(
                     job.request_hash,
                     self.context_repository,

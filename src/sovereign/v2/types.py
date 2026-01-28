@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 import pydantic
@@ -24,10 +25,12 @@ class DiscoveryEntry(pydantic.BaseModel):
 
 class RefreshContextJob(pydantic.BaseModel):
     context_name: str
+    created_at: float = pydantic.Field(default_factory=time.time)
 
 
 class RenderDiscoveryJob(pydantic.BaseModel):
     request_hash: str
+    created_at: float = pydantic.Field(default_factory=time.time)
 
 
 QueueJob = RefreshContextJob | RenderDiscoveryJob

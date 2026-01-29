@@ -272,6 +272,8 @@ class SqliteDataStore(DataStoreProtocol):
                 return "request_hash"
             case DataType.WorkerNode:
                 return "node_id"
+            case _:
+                raise ValueError(f"Unsupported data type: {data_type}")
 
     @staticmethod
     def _get_operator_sql(operator: ComparisonOperator) -> str:
@@ -292,6 +294,8 @@ class SqliteDataStore(DataStoreProtocol):
                 return "discovery_entries"
             case DataType.WorkerNode:
                 return "worker_nodes"
+            case _:
+                raise ValueError(f"Unsupported data type: {data_type}")
 
     @staticmethod
     def _row_to_object(data_type: DataType, row: sqlite3.Row) -> Any:

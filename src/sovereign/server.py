@@ -1,4 +1,5 @@
 import configparser
+import multiprocessing
 import tempfile
 import warnings
 from pathlib import Path
@@ -97,7 +98,7 @@ def write_supervisor_conf() -> Path:
 
     conf["program:data"] = worker = {
         **base,
-        "numprocs": "4",
+        "numprocs": str(multiprocessing.cpu_count() - 1),
         "command": "sovereign-worker",  # run worker with reduced CPU priority (higher niceness value)
         "process_name": "sovereign-worker-%(process_num)s",
     }

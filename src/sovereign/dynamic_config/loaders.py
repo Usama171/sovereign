@@ -1,5 +1,6 @@
 import importlib
 import os
+import zlib
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from typing import Any, Protocol
@@ -9,6 +10,7 @@ import requests
 from sovereign.utils.resources import get_package_file_bytes
 
 try:
+    # noinspection PyUnusedImports
     import boto3
 
     BOTO_IS_AVAILABLE = True
@@ -32,6 +34,11 @@ class CustomLoader(Protocol):
     default_deser: str = "yaml"
 
     def load(self, path: str) -> Any: ...
+
+    # noinspection PyMethodMayBeStatic
+    def hash(self, value: Any) -> int:
+        data: bytes = repr(value).encode()
+        return zlib.adler32(data) & 0xFFFFFFFF
 
 
 class File(CustomLoader):

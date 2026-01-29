@@ -3,7 +3,6 @@ import logging
 import os
 import threading
 import time
-import zlib
 from typing import Any
 
 from croniter import croniter
@@ -13,7 +12,10 @@ from sovereign.configuration import SovereignConfigv2
 from sovereign.context import CronInterval, SecondsInterval, TaskInterval, stats
 from sovereign.dynamic_config import Loadable
 from sovereign.utils.timer import wait_until
-from sovereign.v2.data.repositories import ContextRepository, DiscoveryEntryRepository
+from sovereign.v2.data.repositories import (
+    ContextRepository,
+    DiscoveryEntryRepository,
+)
 from sovereign.v2.data.worker_queue import QueueProtocol
 from sovereign.v2.logging import capture_exception, get_named_logger
 from sovereign.v2.types import Context, RenderDiscoveryJob
@@ -44,7 +46,7 @@ def refresh_context(
 
         try:
             value: Any = loadable.load()
-            new_hash = _get_hash(value)
+            new_hash = loadable.hash(value)
             old_hash = context_repository.get_hash(name)
 
             if old_hash != new_hash:
@@ -56,7 +58,7 @@ def refresh_context(
                     name=name,
                     data=value,
                     data_hash=new_hash,
-                    last_refreshed_at=int(time.monotonic()),
+                    last_refreshed_at=int(time.time()),
                     refresh_after=get_refresh_after(config, loadable),
                 )
                 context_repository.save(context)
@@ -87,11 +89,6 @@ def refresh_context(
             # todo: use the default retry logic instead
             logger.exception("Failed to load context")
             capture_exception(e)
-
-
-def _get_hash(value: Any) -> int:
-    data: bytes = repr(value).encode()
-    return zlib.adler32(data) & 0xFFFFFFFF
 
 
 # noinspection PyUnreachableCode

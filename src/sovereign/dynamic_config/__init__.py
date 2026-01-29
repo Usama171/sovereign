@@ -20,7 +20,7 @@ class Loadable(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    def load(self, default: Any = None) -> Any:
+    def _get_loader(self) -> CustomLoader:
         global LOADERS
         if not LOADERS:
             init_loaders()
@@ -33,7 +33,11 @@ class Loadable(BaseModel):
             raise KeyError(
                 f"Could not find CustomLoader {self.protocol}. Available: {LOADERS}"
             )
-        loader = LOADERS[self.protocol]
+
+        return LOADERS[self.protocol]
+
+    def load(self, default: Any = None) -> Any:
+        loader = self._get_loader()
 
         ser = self.serialization
         if ser is None:
@@ -53,6 +57,10 @@ class Loadable(BaseModel):
             raise Exception(
                 f"Could not load value. {self.__str__()}, {original_error=}"
             )
+
+    def hash(self, value: Any):
+        loader = self._get_loader()
+        return loader.hash(value)
 
     @staticmethod
     def from_legacy_fmt(fmt_string: str) -> "Loadable":

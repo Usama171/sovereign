@@ -96,12 +96,20 @@ def write_supervisor_conf() -> Path:
         "command": "sovereign-web",  # default niceness, higher CPU priority
     }
 
-    conf["program:data"] = worker = {
-        **base,
-        "numprocs": str(multiprocessing.cpu_count() - 1),
-        "command": "sovereign-worker",  # run worker with reduced CPU priority (higher niceness value)
-        "process_name": "sovereign-worker-%(process_num)s",
-    }
+    if config.worker_v2_enabled:
+        conf["program:data"] = worker = {
+            **base,
+            "numprocs": str(multiprocessing.cpu_count() - 1),
+            "command": "sovereign-worker",  # run worker with reduced CPU priority (higher niceness value)
+            "process_name": "sovereign-worker-%(process_num)s",
+        }
+    else:
+        conf["program:data"] = worker = {
+            **base,
+            "numprocs": "1",
+            "command": "sovereign-worker",  # run worker with reduced CPU priority (higher niceness value)
+            "process_name": "sovereign-worker-%(process_num)s",
+        }
 
     if user := asgi_config.user:
         supervisord["user"] = user

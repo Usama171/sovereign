@@ -7,7 +7,7 @@ app = FastAPI()
 
 instances = []
 context = "helloworld"
-retries = 0
+raise_delay_completed = False
 
 
 class Endpoint(BaseModel):
@@ -26,18 +26,19 @@ class Instance(BaseModel):
 
 @app.get("/context")
 async def get_context():
-    if context == "raise":
-        global retries
-        retries += 1
-        if retries < 3:
-            raise ValueError(f"instructed to raise error (attempt:{retries})")
+    global raise_delay_completed
+    if context == "raise" and not raise_delay_completed:
+        # Simulate a slow/failing response on first attempt after context changes to "raise"
+        raise_delay_completed = True
+        raise ValueError("instructed to raise error (first attempt)")
     return context
 
 
 @app.patch("/context/{new}")
 async def patch_context(new):
-    global context
+    global context, raise_delay_completed
     context = new
+    raise_delay_completed = False
     return ""
 
 

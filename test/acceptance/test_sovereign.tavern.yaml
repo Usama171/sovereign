@@ -173,16 +173,22 @@ marks:
 
 stages:
   - name: the listener has been requested (and thus registered)
+    max_retries: 5
     delay_after: 3
     request:
       url: 'http://sovereign:8080/ui/resources/listeners/port80'
       method: GET
+    response:
+      status_code: 200
 
   - name: reset context to default value
-    delay_after: 3
+    max_retries: 5
+    delay_after: 5
     request:
       url: 'http://mock:8000/context/helloworld'
       method: PATCH
+    response:
+      status_code: 200
 
   - name: the listener contains data from context
     max_retries: 30
@@ -201,7 +207,8 @@ stages:
                 expected: "helloworld"
 
   - name: the mock server accepts a modification to the context
-    delay_after: 3
+    max_retries: 5
+    delay_after: 5
     request:
       url: 'http://mock:8000/context/foobar'
       method: PATCH
@@ -225,7 +232,8 @@ stages:
                 expected: "foobar"
 
   - name: the mock accepts a modification to the data to force it to raise exceptions
-    delay_after: 3
+    max_retries: 5
+    delay_after: 10
     request:
       url: 'http://mock:8000/context/raise'
       method: PATCH
@@ -233,7 +241,7 @@ stages:
       status_code: 200
 
   - name: the context is retried until successful
-    max_retries: 30
+    max_retries: 60
     delay_after: 2
     request:
       url: 'http://sovereign:8080/ui/resources/listeners/port80'

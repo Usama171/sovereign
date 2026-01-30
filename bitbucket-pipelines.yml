@@ -55,7 +55,7 @@ pipelines:
               - make unit
         - step:
             name: Linting
-            caches: [ uv ]
+            caches: [uv]
             script:
               - *set_environment
               - *install_uv
@@ -63,7 +63,7 @@ pipelines:
               - uv run ruff check src/sovereign
         - step:
             name: Format check
-            caches: [ uv ]
+            caches: [uv]
             script:
               - *set_environment
               - *install_uv
@@ -71,7 +71,7 @@ pipelines:
               - uv run ruff format --check src/sovereign
         - step:
             name: Type checks
-            caches: [ uv ]
+            caches: [uv]
             script:
               - *set_environment
               - *install_uv
@@ -113,13 +113,6 @@ pipelines:
   branches:
     master:
       - parallel: *tests
-      - step:
-          name: Mirror to github
-          script:
-            - git remote add github git@github.com:cetanu/sovereign.git
-            - git fetch --unshallow github
-            - git branch --set-upstream-to master
-            - git push --set-upstream --force github master
   tags:
     '*.*.*':
       - step:

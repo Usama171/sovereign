@@ -53,7 +53,6 @@ def render_discovery_response(
         now = int(time.time())
         if (
             discovery_entry.rendering_started_at is not None
-            and discovery_entry.response is None
             and (now - discovery_entry.rendering_started_at) < rendering_timeout_seconds
         ):
             logger.info(

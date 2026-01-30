@@ -63,7 +63,7 @@ def refresh_context(
                 )
                 context_repository.save(context)
 
-                request_hashes: set[str] = set()
+                request_hashes: dict[str, str] = {}
 
                 for version, version_templates in (
                     {"default": config.templates.default} | config.templates.versions
@@ -73,13 +73,14 @@ def refresh_context(
                             for request_hash in discovery_job_repository.find_all_request_hashes_by_template(
                                 template.type
                             ):
-                                request_hashes.add(request_hash)
+                                request_hashes[request_hash] = template.type
 
-                for request_hash in request_hashes:
+                for request_hash, template in request_hashes:
                     logger.info(
                         "Queuing render for discovery request because context changed",
-                        request_hash=request_hash,
                         context=name,
+                        request_hash=request_hash,
+                        template=template,
                     )
                     queue.put(RenderDiscoveryJob(request_hash=request_hash))
         except Exception as e:

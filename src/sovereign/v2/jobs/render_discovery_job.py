@@ -37,7 +37,7 @@ def render_discovery_response(
 
     # Maximum time (in seconds) to consider a rendering job as still in progress
     # If rendering_started_at is within this window and no response exists, skip this job
-    rendering_timeout_seconds = 600  # 10 minutes
+    rendering_timeout_seconds = config.cache.read_timeout
 
     try:
         logger.debug("Starting rendering of discovery response")

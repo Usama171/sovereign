@@ -7,7 +7,7 @@ from typing import Protocol, runtime_checkable
 
 from structlog.typing import FilteringBoundLogger
 
-from sovereign import config
+from sovereign import config, stats
 from sovereign.v2.logging import capture_exception, get_named_logger
 from sovereign.v2.types import QueueJob, queue_job_type_adapter
 
@@ -47,7 +47,7 @@ class InMemoryQueue(QueueProtocol):
     ) -> None:
         self.logger: FilteringBoundLogger = get_named_logger(
             f"{self.__class__.__module__}.{self.__class__.__qualname__}",
-            level=logging.INFO,
+            level=logging.DEBUG,
         )
 
         self.visibility_timeout: int = (
@@ -65,6 +65,7 @@ class InMemoryQueue(QueueProtocol):
         self.logger.debug(
             "Putting job in queue",
             job=job,
+            job_type=type(job).__name__,
             message_id=message_id,
             queue_size=len(self._messages),
         )
@@ -195,6 +196,9 @@ class SqliteQueue(QueueProtocol):
                 )
                 job_id = str(cursor.lastrowid)
                 self.logger.debug("Put job in SQLite queue", job=job, job_id=job_id)
+                stats.increment(
+                    "v2.worker.job_queued", tags=[f"job_type:{type(job).__name__}"]
+                )
                 return str(job_id)
         except Exception as e:
             self.logger.exception("Failed to put job in SQLite queue", job=job)

@@ -75,7 +75,7 @@ def refresh_context(
                             ):
                                 request_hashes[request_hash] = template.type
 
-                for request_hash, template in request_hashes:
+                for request_hash, template in request_hashes.items():
                     logger.info(
                         "Queuing render for discovery request because context changed",
                         context=name,

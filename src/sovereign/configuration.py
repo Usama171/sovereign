@@ -518,9 +518,6 @@ class SovereignConfigv2(BaseSettings):
     worker_v2_enabled: Optional[bool] = Field(
         False, alias="SOVEREIGN_WORKER_V2_ENABLED"
     )
-    worker_v2_queue_invsibility_time: Optional[int] = Field(
-        None, alias="SOVEREIGN_WORKER_V2_QUEUE_INVISIBILITY_TIME"
-    )
 
     # Supervisord settings
     supervisord: SupervisordConfig = SupervisordConfig()

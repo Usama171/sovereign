@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sovereign.v2.data.data_store import InMemoryDataStore
-from sovereign.v2.data.worker_queue import InMemoryQueue, QueueMessage
+from sovereign.v2.data.worker_queue import InMemoryQueue
 from sovereign.v2.types import RefreshContextJob
 from sovereign.v2.worker import Worker
 
@@ -112,11 +112,9 @@ def test_leader_enqueues_context_refresh_job_when_never_refreshed(
             worker.context_refresh_loop()
 
     assert not queue.is_empty()
-    message = queue.get()
-    assert isinstance(message, QueueMessage)
-    assert isinstance(message.job, RefreshContextJob)
-    assert message.job.context_name == "test_context"
-    queue.ack(message.receipt_handle)
+    job = queue.get()
+    assert isinstance(job, RefreshContextJob)
+    assert job.context_name == "test_context"
 
 
 # noinspection DuplicatedCode
@@ -195,11 +193,9 @@ def test_leader_skips_context_when_due(
             worker.context_refresh_loop()
 
     assert not queue.is_empty()
-    message = queue.get()
-    assert isinstance(message, QueueMessage)
-    assert isinstance(message.job, RefreshContextJob)
-    assert message.job.context_name == "test_context"
-    queue.ack(message.receipt_handle)
+    job = queue.get()
+    assert isinstance(job, RefreshContextJob)
+    assert job.context_name == "test_context"
 
 
 def _sleep_side_effect(seconds):

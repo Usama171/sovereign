@@ -74,54 +74,32 @@ class Worker:
             job_logger = logger
 
             try:
-                if message := self.queue.get():
-                    job_type = type(message.job).__name__
+                if job := self.queue.get():
+                    job_type = type(job).__name__
 
                     stats.increment(
                         "v2.worker.queue.message_received",
                         tags=[f"job_type:{job_type}"],
                     )
 
-                    job_logger = job_logger.bind(job_type=job_type, job=message.job)
+                    job_logger = job_logger.bind(job_type=job_type, job=job)
 
-                    should_ack = self.process_job(message.job)
+                    if not self.process_job(job):
+                        job_logger.error("Could not process job")
 
                     # Emit metric for queue-to-completion time
-                    queue_to_completion_time_ms = (
-                        time.time() - message.job.created_at
-                    ) * 1000
+                    queue_to_completion_time_ms = (time.time() - job.created_at) * 1000
                     stats.timing(
                         "v2.worker.queue.queue_to_completion_ms",
                         queue_to_completion_time_ms,
                         tags=[f"job_type:{job_type}"],
                     )
-
-                    if should_ack:
-                        self.queue.ack(message.receipt_handle)
-                        stats.increment(
-                            "v2.worker.queue.message_acked",
-                            tags=[f"job_type:{job_type}"],
-                        )
-                    else:
-                        job_logger.warning(
-                            "Job processing returned False, not acknowledging - job will be retried after visibility timeout"
-                        )
-                        stats.increment(
-                            "v2.worker.queue.message_not_acked",
-                            tags=[f"job_type:{job_type}"],
-                        )
             except Exception as e:
                 stats.increment("v2.worker.queue.error")
                 job_logger.exception("Error while processing job")
                 capture_exception(e)
 
     def process_job(self, job: QueueJob) -> bool:
-        """
-        Process a job from the queue.
-
-        Returns True if the job was successfully processed and should be acknowledged.
-        Returns False if the job should be retried (e.g., missing contexts).
-        """
         logger = self.logger.bind(
             job_type=type(job),
             job=job,
@@ -135,7 +113,7 @@ class Worker:
                 logger = logger.bind(name=job.context_name)
                 logger.info("Processing job from queue")
 
-                refresh_context(
+                return refresh_context(
                     job.context_name,
                     self.node_id,
                     config,
@@ -143,7 +121,6 @@ class Worker:
                     self.discovery_entry_repository,
                     self.queue,
                 )
-                return True
             case RenderDiscoveryJob():
                 logger = logger.bind(request_hash=job.request_hash)
                 logger.info("Processing job from queue")

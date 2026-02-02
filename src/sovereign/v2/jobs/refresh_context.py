@@ -28,7 +28,7 @@ def refresh_context(
     context_repository: ContextRepository,
     discovery_job_repository: DiscoveryEntryRepository,
     queue: QueueProtocol,
-):
+) -> bool:
     with stats.timed("v2.worker.job.refresh_context_ms", tags=[f"context:{name}"]):
         loadable = config.template_context.context[name]
 
@@ -83,13 +83,12 @@ def refresh_context(
                         template=template,
                     )
                     queue.put(RenderDiscoveryJob(request_hash=request_hash))
+
+            return True
         except Exception as e:
-            # if loadable.retry_policy is not None:
-            # print(loadable.retry_policy)
-            # todo: handle exceptions/retries
-            # todo: use the default retry logic instead
             logger.exception("Failed to load context")
             capture_exception(e)
+            return False
 
 
 # noinspection PyUnreachableCode

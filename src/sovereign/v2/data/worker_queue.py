@@ -93,12 +93,6 @@ class SqliteQueue(QueueProtocol):
                                  data TEXT NOT NULL
                              )
                              """)
-                conn.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_invisible_until ON queue (invisible_until)"
-                )
-                conn.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_receipt_handle ON queue (receipt_handle)"
-                )
                 conn.commit()
         except Exception as e:
             self.logger.exception("Failed to initialise SQLite queue database")
@@ -109,7 +103,7 @@ class SqliteQueue(QueueProtocol):
         try:
             with self._get_connection() as conn:
                 cursor = conn.execute(
-                    "INSERT INTO queue (data, invisible_until, receipt_handle) VALUES (?, NULL, NULL)",
+                    "INSERT INTO queue (data) VALUES (?)",
                     (job.model_dump_json(),),
                 )
                 job_id = str(cursor.lastrowid)

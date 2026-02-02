@@ -157,6 +157,7 @@ class SqliteQueue(QueueProtocol):
                 cursor = conn.execute("SELECT COUNT(*) FROM queue")
                 row = cursor.fetchone()
                 return row[0] if row else 0
-        except Exception:
+        except Exception as e:
             self.logger.exception("Failed to get queue size from SQLite queue")
+            capture_exception(e)
             return 0

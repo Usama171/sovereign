@@ -56,11 +56,11 @@ async def wait_for_discovery_response(
         )
         discovery_entry_repository.save(discovery_entry)
 
-    if not discovery_entry.response:
-        # enqueue a job to render this discovery request (duplicates handled in the worker)
+        # enqueue a job to render this discovery request
         job = RenderDiscoveryJob(request_hash=request_hash)
         queue.put(job)
-    else:
+
+    if discovery_entry.response:
         logger.debug("Returning cached response immediately")
         stats.increment(
             "v2.worker.discovery_response",

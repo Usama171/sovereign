@@ -8,7 +8,7 @@ from structlog.typing import FilteringBoundLogger
 
 from sovereign import config
 from sovereign.types import DiscoveryRequest, DiscoveryResponse
-from sovereign.v2.logging import get_named_logger
+from sovereign.v2.logging import get_named_logger, capture_exception
 from sovereign.v2.types import Context, DiscoveryEntry, WorkerNode
 
 
@@ -420,7 +420,7 @@ class SqliteDataStore(DataStoreProtocol):
             cursor.execute(sql, (property_value,))
             row = cursor.fetchone()
             return row[0] if row else 0
-        except (sqlite3.Error, ValueError):
+        except (sqlite3.Error, ValueError) as e:
             self.logger.exception(
                 "Error counting matching records",
                 data_type=data_type,
@@ -428,6 +428,7 @@ class SqliteDataStore(DataStoreProtocol):
                 operator=comparison_operator,
                 value=property_value,
             )
+            capture_exception(e)
             return 0
 
     def delete_matching(
@@ -458,7 +459,7 @@ class SqliteDataStore(DataStoreProtocol):
             cursor.execute(sql, (property_value,))
             conn.commit()
             return True
-        except (sqlite3.Error, ValueError):
+        except (sqlite3.Error, ValueError) as e:
             self.logger.exception(
                 "Error deleting matching records",
                 data_type=data_type,
@@ -466,6 +467,7 @@ class SqliteDataStore(DataStoreProtocol):
                 operator=comparison_operator,
                 value=property_value,
             )
+            capture_exception(e)
             return False
 
     def find_all_matching(
@@ -495,7 +497,7 @@ class SqliteDataStore(DataStoreProtocol):
             cursor = conn.cursor()
             cursor.execute(sql, (property_value,))
             return [self._row_to_object(data_type, row) for row in cursor.fetchall()]
-        except (sqlite3.Error, ValueError):
+        except (sqlite3.Error, ValueError) as e:
             self.logger.exception(
                 "Error finding matching records",
                 data_type=data_type,
@@ -503,6 +505,7 @@ class SqliteDataStore(DataStoreProtocol):
                 operator=comparison_operator,
                 value=property_value,
             )
+            capture_exception(e)
             return []
 
     def find_all_matching_property(
@@ -543,7 +546,7 @@ class SqliteDataStore(DataStoreProtocol):
             cursor = conn.cursor()
             cursor.execute(sql, (match_property_value,))
             return [row[0] for row in cursor.fetchall()]
-        except (sqlite3.Error, ValueError):
+        except (sqlite3.Error, ValueError) as e:
             self.logger.exception(
                 "Error finding matching records",
                 data_type=data_type,
@@ -551,6 +554,7 @@ class SqliteDataStore(DataStoreProtocol):
                 operator=comparison_operator,
                 value=match_property_value,
             )
+            capture_exception(e)
             return []
 
     def get(self, data_type: DataType, key: str) -> Any | None:
@@ -565,12 +569,13 @@ class SqliteDataStore(DataStoreProtocol):
             cursor.execute(sql, (key,))
             row = cursor.fetchone()
             return self._row_to_object(data_type, row) if row else None
-        except (sqlite3.Error, ValueError):
+        except (sqlite3.Error, ValueError) as e:
             self.logger.exception(
                 "Error getting record",
                 data_type=data_type,
                 key=key,
             )
+            capture_exception(e)
             return None
 
     def get_property(
@@ -597,13 +602,14 @@ class SqliteDataStore(DataStoreProtocol):
             cursor.execute(sql, (key,))
             row = cursor.fetchone()
             return row[0] if row else None
-        except (sqlite3.Error, ValueError):
+        except (sqlite3.Error, ValueError) as e:
             self.logger.exception(
                 "Error getting property",
                 data_type=data_type,
                 key=key,
                 property=property_name,
             )
+            capture_exception(e)
             return None
 
     def min_by_property(
@@ -631,12 +637,13 @@ class SqliteDataStore(DataStoreProtocol):
             cursor.execute(sql)
             row = cursor.fetchone()
             return self._row_to_object(data_type, row) if row else None
-        except (sqlite3.Error, ValueError):
+        except (sqlite3.Error, ValueError) as e:
             self.logger.exception(
                 "Error getting min by property",
                 data_type=data_type,
                 property=property_name,
             )
+            capture_exception(e)
             return None
 
     def set(self, data_type: DataType, key: str, value: Any) -> bool:
@@ -656,13 +663,14 @@ class SqliteDataStore(DataStoreProtocol):
             if cursor.rowcount == 0:
                 return False
             return True
-        except (sqlite3.Error, ValueError):
+        except (sqlite3.Error, ValueError) as e:
             self.logger.exception(
                 "Error saving record",
                 data_type=data_type,
                 key=key,
                 values=value_dict,
             )
+            capture_exception(e)
             return False
 
     def set_property(
@@ -693,7 +701,7 @@ class SqliteDataStore(DataStoreProtocol):
             cursor.execute(sql, (key, property_value))
             conn.commit()
             return True
-        except (sqlite3.Error, ValueError):
+        except (sqlite3.Error, ValueError) as e:
             self.logger.exception(
                 "Error setting property",
                 data_type=data_type,
@@ -701,4 +709,5 @@ class SqliteDataStore(DataStoreProtocol):
                 property=property_name,
                 value=property_value,
             )
+            capture_exception(e)
             return False

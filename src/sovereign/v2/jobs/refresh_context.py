@@ -86,6 +86,7 @@ def refresh_context(
 
             return True
         except Exception as e:
+            stats.increment("v2.worker.refresh_context.error", tags=[f"context:{name}"])
             logger.exception("Failed to load context")
             capture_exception(e)
             return False

@@ -77,26 +77,37 @@ class Worker:
                 if job := self.queue.get():
                     job_type = type(job).__name__
 
-                    stats.increment(
-                        "v2.worker.queue.message_received",
-                        tags=[f"job_type:{job_type}"],
-                    )
+                    try:
+                        stats.increment(
+                            "v2.worker.queue.message_received",
+                            tags=[f"job_type:{job_type}"],
+                        )
 
-                    job_logger = job_logger.bind(job_type=job_type, job=job)
+                        job_logger = job_logger.bind(job_type=job_type, job=job)
 
-                    if not self.process_job(job):
-                        job_logger.error("Could not process job")
+                        if not self.process_job(job):
+                            job_logger.error("Could not process job")
 
-                    # Emit metric for queue-to-completion time
-                    queue_to_completion_time_ms = (time.time() - job.created_at) * 1000
-                    stats.timing(
-                        "v2.worker.queue.queue_to_completion_ms",
-                        queue_to_completion_time_ms,
-                        tags=[f"job_type:{job_type}"],
-                    )
+                        # Emit metric for queue-to-completion time
+                        queue_to_completion_time_ms = (
+                            time.time() - job.created_at
+                        ) * 1000
+                        stats.timing(
+                            "v2.worker.queue.queue_to_completion_ms",
+                            queue_to_completion_time_ms,
+                            tags=[f"job_type:{job_type}"],
+                        )
+                    except Exception as e:
+                        stats.increment(
+                            "v2.worker.queue.error", tags=[f"job_type:{job_type}"]
+                        )
+                        job_logger.exception(
+                            "Error while processing job from queue", job_type=job_type
+                        )
+                        capture_exception(e)
             except Exception as e:
                 stats.increment("v2.worker.queue.error")
-                job_logger.exception("Error while processing job")
+                job_logger.exception("Error while retrieving job from queue")
                 capture_exception(e)
 
     def process_job(self, job: QueueJob) -> bool:

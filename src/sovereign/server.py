@@ -100,14 +100,14 @@ def write_supervisor_conf() -> Path:
         conf["program:data"] = worker = {
             **base,
             "numprocs": str(max(1, multiprocessing.cpu_count() - 1)),
-            "command": "sovereign-worker",  # run worker with reduced CPU priority (higher niceness value)
+            "command": "sovereign-worker",
             "process_name": "sovereign-worker-%(process_num)s",
         }
     else:
         conf["program:data"] = worker = {
             **base,
             "numprocs": "1",
-            "command": "sovereign-worker",  # run worker with reduced CPU priority (higher niceness value)
+            "command": "nice -n 10 sovereign-worker",  # run worker with reduced CPU priority (higher niceness value)
             "process_name": "sovereign-worker-%(process_num)s",
         }
 

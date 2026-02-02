@@ -94,6 +94,16 @@ def render_discovery_response(
                     for name, context in contexts.items()
                     if context is None or context.last_refreshed_at is None
                 ]
+
+                # if the context is not configured, assume that it's optional and remove it from the list
+                for name in list(missing_contexts):
+                    if name not in config.template_context.context:
+                        logger.debug(
+                            "Context not configured, assuming optional and skipping",
+                            context=name,
+                        )
+                        missing_contexts.remove(name)
+
                 if missing_contexts:
                     logger.error(
                         "Cannot render template for request, required contexts not yet loaded",

@@ -204,10 +204,8 @@ def render_discovery_response(
                 return False
 
             return True
-        except Exception:
-            # clear rendering_started_at if we've failed to render (successful render clears it above when the entry
-            # is saved)
+        finally:
+            # clear rendering_started_at no matter how we exit
             discovery_entry_repository.clear_rendering_started_at(request_hash)
-            return False
     finally:
         logger.debug("Finished rendering of discovery response")

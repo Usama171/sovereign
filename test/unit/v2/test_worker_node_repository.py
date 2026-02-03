@@ -21,26 +21,26 @@ def test_get_leader(
     data_store: DataStoreProtocol, worker_node_repository: WorkerNodeRepository
 ):
     """
-    Leader should be the node with the lowest ID (when sorted lexicographically).
+    Leader should be the node with the greatest ID (when sorted lexicographically).
     """
 
     # add a node that's not the leader
     data_store.set(
         DataType.WorkerNode,
-        "ZZZ not leader",
-        WorkerNode(node_id="ZZZ not leader", last_heartbeat=int(time.time())),
+        "AAA not leader",
+        WorkerNode(node_id="AAA not leader", last_heartbeat=int(time.time())),
     )
 
-    # add a node not to be pruned
+    # add a node that is the leader (greatest ID)
     data_store.set(
         DataType.WorkerNode,
-        "AAA leader",
-        WorkerNode(node_id="AAA leader", last_heartbeat=int(time.time())),
+        "ZZZ leader",
+        WorkerNode(node_id="ZZZ leader", last_heartbeat=int(time.time())),
     )
 
     leader_node_id = worker_node_repository.get_leader_node_id()
 
-    assert leader_node_id == "AAA leader"
+    assert leader_node_id == "ZZZ leader"
 
 
 def test_prune(

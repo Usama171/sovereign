@@ -4,21 +4,28 @@ from sovereign.v2.data.data_store import DataStoreProtocol
 from sovereign.v2.data.worker_queue import QueueProtocol
 
 
+_data_store: DataStoreProtocol
+
+
 def get_data_store() -> DataStoreProtocol:
+    global _data_store
+
     entry_points = EntryPointLoader("data_stores")
-    data_store: DataStoreProtocol | None = None
 
     for entry_point in entry_points.groups["data_stores"]:
         if entry_point.name == config.worker_v2_data_store_provider:
-            data_store = entry_point.load()()
+            _data_store = entry_point.load()()
             break
 
-    if data_store is None:
+    if not _data_store:
         raise ValueError(
             f"Data store '{config.worker_v2_data_store_provider}' not found in entry points"
         )
 
-    return data_store
+    if not _data_store.migrate():
+        raise RuntimeError("Data store migration failed")
+
+    return _data_store
 
 
 def get_queue() -> QueueProtocol:

@@ -25,6 +25,8 @@ class DataType(StrEnum):
 
 
 class DataStoreProtocol(Protocol):
+    def migrate(self) -> bool: ...
+
     def count_matching(
         self,
         data_type: DataType,
@@ -111,6 +113,9 @@ class InMemoryDataStore(DataStoreProtocol):
             DataType.DiscoveryEntry: dict[str, DiscoveryEntry](),
             DataType.WorkerNode: dict[str, WorkerNode](),
         }
+
+    def migrate(self) -> bool:
+        return True
 
     @staticmethod
     def _compare(left: Any, operator: ComparisonOperator, right: Any) -> bool:
@@ -259,9 +264,10 @@ class SqliteDataStore(DataStoreProtocol):
         )
         self.db_path = config.worker_v2_data_store_path
 
-        self._init_tables()
+    def migrate(self) -> bool:
+        return self._init_tables()
 
-    def _init_tables(self):
+    def _init_tables(self) -> bool:
         conn = self._get_connection()
         cursor = conn.cursor()
 
@@ -294,6 +300,7 @@ class SqliteDataStore(DataStoreProtocol):
         """)
 
         conn.commit()
+        return True
 
     def _get_connection(self):
         # check_same_thread=False allows SQLite connections to be shared across threads

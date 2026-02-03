@@ -24,7 +24,14 @@ class DataType(StrEnum):
     WorkerNode = "worker_node"
 
 
+class DataStorePurpose(StrEnum):
+    Web = "web"
+    Worker = "worker"
+
+
 class DataStoreProtocol(Protocol):
+    def set_purpose(self, purpose: DataStorePurpose) -> None: ...
+
     def migrate(self) -> bool: ...
 
     def count_matching(
@@ -114,6 +121,8 @@ class InMemoryDataStore(DataStoreProtocol):
             DataType.DiscoveryEntry: dict[str, DiscoveryEntry](),
             DataType.WorkerNode: dict[str, WorkerNode](),
         }
+
+    def set_purpose(self, purpose: DataStorePurpose) -> None: ...
 
     def migrate(self) -> bool:
         return True
@@ -264,6 +273,8 @@ class SqliteDataStore(DataStoreProtocol):
             level=logging.INFO,
         )
         self.db_path = config.worker_v2_data_store_path
+
+    def set_purpose(self, purpose: DataStorePurpose) -> None: ...
 
     def migrate(self) -> bool:
         return self._init_tables()

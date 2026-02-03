@@ -8,7 +8,7 @@ from structlog.typing import FilteringBoundLogger
 from sovereign import config, stats
 from sovereign.types import DiscoveryRequest, DiscoveryResponse
 from sovereign.v2.data.repositories import DiscoveryEntryRepository
-from sovereign.v2.data.utils import get_data_store, get_queue
+from sovereign.v2.data.utils import get_queue, get_data_store_web
 from sovereign.v2.logging import get_named_logger
 from sovereign.v2.types import DiscoveryEntry, RenderDiscoveryJob
 
@@ -35,7 +35,7 @@ async def wait_for_discovery_response(
 
     logger.debug("Starting lookup for discovery response")
 
-    data_store = get_data_store()
+    data_store = get_data_store_web()
     discovery_entry_repository = DiscoveryEntryRepository(data_store)
 
     queue = get_queue()

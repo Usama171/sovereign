@@ -4,8 +4,8 @@ from sovereign.v2.data.data_store import DataStoreProtocol, DataStorePurpose
 from sovereign.v2.data.worker_queue import QueueProtocol
 
 
-_data_store_web: DataStoreProtocol | None
-_data_store_worker: DataStoreProtocol | None
+_data_store_web: DataStoreProtocol | None = None
+_data_store_worker: DataStoreProtocol | None = None
 
 
 def _create_new_data_store() -> DataStoreProtocol:

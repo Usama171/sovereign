@@ -21,9 +21,6 @@ def _create_new_data_store() -> DataStoreProtocol:
             f"Data store '{config.worker_v2_data_store_provider}' not found in entry points"
         )
 
-    if not data_store.migrate():
-        raise RuntimeError("Data store migration failed")
-
     return data_store
 
 

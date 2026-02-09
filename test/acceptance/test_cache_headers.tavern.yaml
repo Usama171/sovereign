@@ -48,7 +48,7 @@ stages:
         X-Cache: hit
 
 ---
-test_name: X-Cache header returns bypass for cache_bust requests
+test_name: X-Cache header returns bypass for bypass_cache requests
 
 marks:
   - all
@@ -57,7 +57,7 @@ marks:
       - skip_if_not_worker_v2
 
 stages:
-  - name: Request with cache_bust metadata
+  - name: Request with sovereign.bypass_cache metadata
     max_retries: 5
     delay_after: 2
     request:
@@ -73,7 +73,8 @@ stages:
           metadata:
             auth: '{auth_string}'
             ipv4: 127.0.0.1
-            cache_bust: '1234567890'
+            sovereign:
+              bypass_cache: true
         resource_names: []
         version_info: '0'
       headers:

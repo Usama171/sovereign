@@ -6,7 +6,7 @@ Changelog
 
 ### Features
 
-* **v2 worker**: Added inline cache-bust bypass. When `node.metadata.cache_bust`
+* **v2 worker**: Added inline cache bypass. When `node.metadata.sovereign.bypass_cache`
   is present in a discovery request, sovereign renders the response inline
   without persisting a DiscoveryEntry or enqueuing a RenderDiscoveryJob. This
   prevents unbounded SQLite growth from PDV runs that previously created unique
@@ -14,7 +14,7 @@ Changelog
 
 * **discovery**: Added `X-Cache` response header on v2 discovery responses.
   Values are `hit` (served from DB), `miss` (rendered after polling), or
-  `bypass` (inline cache-bust render).
+  `bypass` (inline bypass_cache render).
 
 * **logging**: Populated the `CACHE_XDS_HIT` access log field (previously
   defined but never set) with the cache source on all v2 discovery responses.

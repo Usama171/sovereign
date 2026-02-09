@@ -27,7 +27,7 @@ def render_template_to_response(
 
     Loads contexts, builds the template, and returns the response.
     Used by both the worker queue path (via render_discovery_response)
-    and the inline cache_bust bypass path (via web.py).
+    and the inline bypass_cache path (via web.py).
     """
     dependencies = request.template.depends_on
     contexts: dict[str, Context | None] = {

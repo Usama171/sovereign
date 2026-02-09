@@ -17,7 +17,7 @@ from sovereign.v2.types import DiscoveryEntry, RenderDiscoveryJob
 async def wait_for_discovery_response(
     request: DiscoveryRequest,
 ) -> DiscoveryResponse | None:
-    # 1 - if cache_bust is set, render inline without persisting
+    # 1 - if bypass_cache is set, render inline without persisting
     # 2 - check if the entry already exists in the database with a non-empty response
     # 3 - if it does, return it
     # 4 - if it doesn't, enqueue a new job to render it
@@ -34,9 +34,10 @@ async def wait_for_discovery_response(
 
     data_store = get_data_store_web()
 
-    # cache_bust bypass: render inline without persisting to avoid unbounded growth
-    if request.node.metadata.get("cache_bust"):
-        logger.info("cache_bust detected, rendering inline without caching")
+    # bypass_cache: render inline without persisting to avoid unbounded growth
+    sovereign_metadata = request.node.metadata.get("sovereign", {})
+    if sovereign_metadata.get("bypass_cache"):
+        logger.info("bypass_cache detected, rendering inline without caching")
         context_repository = ContextRepository(data_store)
         try:
             response = await asyncio.to_thread(
@@ -50,7 +51,7 @@ async def wait_for_discovery_response(
             tags=[
                 f"template:{request.template.resource_type}",
                 "result:success" if response else "result:error",
-                "source:cache_bust_inline",
+                "source:bypass_cache_inline",
             ],
         )
         logs.access_logger.queue_log_fields(CACHE_XDS_HIT="bypass")

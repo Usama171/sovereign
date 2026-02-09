@@ -30,15 +30,15 @@ def mock_response() -> DiscoveryResponse:
 
 
 @pytest.mark.asyncio
-async def test_cache_bust_renders_inline(
+async def test_bypass_cache_renders_inline(
     data_store: InMemoryDataStore,
     queue: InMemoryQueue,
     mock_response: DiscoveryResponse,
 ):
-    """When cache_bust is set in metadata, render inline without persisting."""
+    """When sovereign.bypass_cache is set in metadata, render inline without persisting."""
     request = mock_discovery_request(
         resource_type="clusters",
-        metadata={"cache_bust": "1234567890"},
+        metadata={"sovereign": {"bypass_cache": True}},
     )
 
     with (
@@ -68,12 +68,12 @@ async def test_cache_bust_renders_inline(
 
 
 @pytest.mark.asyncio
-async def test_no_cache_bust_uses_normal_flow(
+async def test_no_bypass_cache_uses_normal_flow(
     data_store: InMemoryDataStore,
     queue: InMemoryQueue,
     mock_response: DiscoveryResponse,
 ):
-    """Without cache_bust, the normal DB lookup + queue flow is used."""
+    """Without sovereign.bypass_cache, the normal DB lookup + queue flow is used."""
     request = mock_discovery_request(
         resource_type="clusters",
         metadata={"auth": "test_auth"},
@@ -100,14 +100,14 @@ async def test_no_cache_bust_uses_normal_flow(
 
 
 @pytest.mark.asyncio
-async def test_empty_cache_bust_uses_normal_flow(
+async def test_empty_bypass_cache_uses_normal_flow(
     data_store: InMemoryDataStore,
     queue: InMemoryQueue,
 ):
-    """Empty string cache_bust is falsy, so normal flow is used."""
+    """Empty/falsy bypass_cache means normal flow is used."""
     request = mock_discovery_request(
         resource_type="clusters",
-        metadata={"cache_bust": "", "auth": "test_auth"},
+        metadata={"sovereign": {"bypass_cache": ""}, "auth": "test_auth"},
     )
 
     with (

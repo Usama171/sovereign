@@ -105,8 +105,7 @@ pipelines:
             script:
               - *set_buildkit_false
               - *setup-docker-compose-latest-script
-              - export SOVEREIGN_WORKER_V2_ENABLED=1
-              - make test-envoy-version
+              - make test-envoy-version-worker-v2
             after-script:
               - docker compose ps
               - docker compose logs -t sovereign envoy mock aws

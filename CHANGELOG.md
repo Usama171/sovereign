@@ -6,27 +6,27 @@ Changelog
 
 ### Features
 
-* **v2 worker**: Added inline cache bypass. When `node.metadata.sovereign.bypass_cache`
+* **v2 worker**: Added inline rendering. When `node.metadata.sovereign.render_inline`
   is present in a discovery request, sovereign renders the response inline
   without persisting a DiscoveryEntry or enqueuing a RenderDiscoveryJob. This
   prevents unbounded SQLite growth from PDV runs that previously created unique
   entries per request.
 
-* **discovery**: Added `X-Cache` response header on v2 discovery responses.
-  Values are `hit` (served from DB), `miss` (rendered after polling), or
-  `bypass` (inline bypass_cache render).
+* **discovery**: Added `X-Sovereign-Response-Source` response header on v2
+  discovery responses. Values are `immediately` (served from DB),
+  `after_polling` (rendered after polling), or `inline` (rendered inline).
 
-* **logging**: Populated the `CACHE_XDS_HIT` access log field (previously
-  defined but never set) with the cache source on all v2 discovery responses.
+* **logging**: Populated the `XDS_RESPONSE_SOURCE` access log field with the
+  response source on successful v2 discovery responses.
 
 ### Internal
 
 * Extracted `render_template_to_response()` from `render_discovery_response()`
-  in `v2/jobs/render_discovery_job.py` to allow reuse by the inline bypass path.
+  in `v2/jobs/render_discovery_job.py` to allow reuse by the inline render path.
 
 * **testing**: Added `skip_if_not_worker_v2` fixture and acceptance tests for
-  `X-Cache` header behavior (hit and bypass). Tests auto-skip when v2 worker is
-  not enabled.
+  `X-Sovereign-Response-Source` header behavior. Tests auto-skip when v2 worker
+  is not enabled.
 
 1.0.0b152 (2026-01-14)
 ----------------------

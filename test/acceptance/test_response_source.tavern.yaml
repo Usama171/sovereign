@@ -1,6 +1,6 @@
 #file: noinspection YAMLIncompatibleTypes
 ---
-test_name: X-Cache header is present on v2 discovery responses
+test_name: X-Sovereign-Response-Source header is present on v2 discovery responses
 
 marks:
   - all
@@ -9,13 +9,13 @@ marks:
       - skip_if_not_worker_v2
 
 stages:
-  - name: First request populates cache
+  - name: First request returns a response source
     max_retries: 5
     delay_after: 2
     request:
       url: 'http://sovereign:8080/v3/discovery:clusters'
       method: POST
-      json: &cache_test_request
+      json: &source_test_request
         node:
           id: envoy
           cluster: T1
@@ -27,28 +27,28 @@ stages:
             ipv4: 127.0.0.1
         resource_names: []
         version_info: '0'
-      headers: &cache_test_headers
+      headers: &source_test_headers
         content-type: application/json
         accept-encoding: None
     response:
       strict: no
       status_code: 200
       headers:
-        X-Cache: !anystr
-  - name: Second request returns cache hit
+        X-Sovereign-Response-Source: !anystr
+  - name: Second request returns immediately
     request:
       url: 'http://sovereign:8080/v3/discovery:clusters'
       method: POST
-      json: *cache_test_request
-      headers: *cache_test_headers
+      json: *source_test_request
+      headers: *source_test_headers
     response:
       strict: no
       status_code: 200
       headers:
-        X-Cache: hit
+        X-Sovereign-Response-Source: immediately
 
 ---
-test_name: X-Cache header returns bypass for bypass_cache requests
+test_name: X-Sovereign-Response-Source returns inline for render_inline requests
 
 marks:
   - all
@@ -57,7 +57,7 @@ marks:
       - skip_if_not_worker_v2
 
 stages:
-  - name: Request with sovereign.bypass_cache metadata
+  - name: Request with sovereign.render_inline metadata
     max_retries: 5
     delay_after: 2
     request:
@@ -74,7 +74,7 @@ stages:
             auth: '{auth_string}'
             ipv4: 127.0.0.1
             sovereign:
-              bypass_cache: true
+              render_inline: true
         resource_names: []
         version_info: '0'
       headers:
@@ -84,4 +84,4 @@ stages:
       strict: no
       status_code: 200
       headers:
-        X-Cache: bypass
+        X-Sovereign-Response-Source: inline

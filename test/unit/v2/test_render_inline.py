@@ -30,15 +30,15 @@ def mock_response() -> DiscoveryResponse:
 
 
 @pytest.mark.asyncio
-async def test_bypass_cache_renders_inline(
+async def test_render_inline_renders_inline(
     data_store: InMemoryDataStore,
     queue: InMemoryQueue,
     mock_response: DiscoveryResponse,
 ):
-    """When sovereign.bypass_cache is set in metadata, render inline without persisting."""
+    """When sovereign.render_inline is set in metadata, render inline without persisting."""
     request = mock_discovery_request(
         resource_type="clusters",
-        metadata={"sovereign": {"bypass_cache": True}},
+        metadata={"sovereign": {"render_inline": True}},
     )
 
     with (
@@ -59,21 +59,19 @@ async def test_bypass_cache_renders_inline(
     assert result.version_info == "test_version_123"
 
     # no DiscoveryEntry should have been created
-    discovery_entry_repo = DiscoveryEntryRepository(data_store)
-    # The data store should have no discovery entries
     assert queue.is_empty(), "No render job should have been queued"
 
-    # CACHE_XDS_HIT should be set to bypass
-    assert context.data.get("CACHE_XDS_HIT") == "bypass"
+    # XDS_RESPONSE_SOURCE should be set to inline
+    assert context.data.get("XDS_RESPONSE_SOURCE") == "inline"
 
 
 @pytest.mark.asyncio
-async def test_no_bypass_cache_uses_normal_flow(
+async def test_no_render_inline_uses_normal_flow(
     data_store: InMemoryDataStore,
     queue: InMemoryQueue,
     mock_response: DiscoveryResponse,
 ):
-    """Without sovereign.bypass_cache, the normal DB lookup + queue flow is used."""
+    """Without sovereign.render_inline, the normal DB lookup + queue flow is used."""
     request = mock_discovery_request(
         resource_type="clusters",
         metadata={"auth": "test_auth"},
@@ -100,14 +98,14 @@ async def test_no_bypass_cache_uses_normal_flow(
 
 
 @pytest.mark.asyncio
-async def test_empty_bypass_cache_uses_normal_flow(
+async def test_empty_render_inline_uses_normal_flow(
     data_store: InMemoryDataStore,
     queue: InMemoryQueue,
 ):
-    """Empty/falsy bypass_cache means normal flow is used."""
+    """Empty/falsy render_inline means normal flow is used."""
     request = mock_discovery_request(
         resource_type="clusters",
-        metadata={"sovereign": {"bypass_cache": ""}, "auth": "test_auth"},
+        metadata={"sovereign": {"render_inline": ""}, "auth": "test_auth"},
     )
 
     with (
@@ -131,12 +129,12 @@ async def test_empty_bypass_cache_uses_normal_flow(
 
 
 @pytest.mark.asyncio
-async def test_cache_hit_sets_hit_in_context(
+async def test_from_db_sets_immediately_in_context(
     data_store: InMemoryDataStore,
     queue: InMemoryQueue,
     mock_response: DiscoveryResponse,
 ):
-    """When a cached DiscoveryEntry exists with a response, CACHE_XDS_HIT is 'hit'."""
+    """When a cached DiscoveryEntry exists with a response, XDS_RESPONSE_SOURCE is 'immediately'."""
     request = mock_discovery_request(
         resource_type="clusters",
         metadata={"auth": "test_auth"},
@@ -169,5 +167,5 @@ async def test_cache_hit_sets_hit_in_context(
 
     assert result is not None
     assert result.version_info == "test_version_123"
-    assert context.data.get("CACHE_XDS_HIT") == "hit"
+    assert context.data.get("XDS_RESPONSE_SOURCE") == "immediately"
     assert queue.is_empty(), "No render job should have been queued for a cache hit"

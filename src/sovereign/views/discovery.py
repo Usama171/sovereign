@@ -25,9 +25,9 @@ def response_headers(
         "X-Sovereign-Requested-Type": xds,
         "X-Sovereign-Response-Version": response.version,
     }
-    cache_source = context.data.get("CACHE_XDS_HIT", "")
-    if cache_source:
-        headers["X-Cache"] = cache_source
+    response_source = context.data.get("XDS_RESPONSE_SOURCE", "")
+    if response_source:
+        headers["X-Sovereign-Response-Source"] = response_source
     return headers
 
 

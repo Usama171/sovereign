@@ -17,7 +17,7 @@ from sovereign.v2.types import DiscoveryEntry, RenderDiscoveryJob
 async def wait_for_discovery_response(
     request: DiscoveryRequest,
 ) -> DiscoveryResponse | None:
-    # 1 - if bypass_cache is set, render inline without persisting
+    # 1 - if render_inline is set, render inline without persisting
     # 2 - check if the entry already exists in the database with a non-empty response
     # 3 - if it does, return it
     # 4 - if it doesn't, enqueue a new job to render it
@@ -34,27 +34,27 @@ async def wait_for_discovery_response(
 
     data_store = get_data_store_web()
 
-    # bypass_cache: render inline without persisting to avoid unbounded growth
+    # render_inline: render inline without persisting to avoid unbounded growth
     sovereign_metadata = request.node.metadata.get("sovereign", {})
-    if sovereign_metadata.get("bypass_cache"):
-        logger.info("bypass_cache detected, rendering inline without caching")
+    if sovereign_metadata.get("render_inline"):
+        logger.info("render_inline detected, rendering inline without persisting")
         context_repository = ContextRepository(data_store)
         try:
             response = await asyncio.to_thread(
                 render_template_to_response, request, context_repository, logger
             )
         except Exception:
-            logs.access_logger.queue_log_fields(CACHE_XDS_HIT="bypass")
+            logs.access_logger.queue_log_fields(XDS_RESPONSE_SOURCE="inline")
             raise
         stats.increment(
             "v2.worker.discovery_response",
             tags=[
                 f"template:{request.template.resource_type}",
                 "result:success" if response else "result:error",
-                "source:bypass_cache_inline",
+                "source:inline",
             ],
         )
-        logs.access_logger.queue_log_fields(CACHE_XDS_HIT="bypass")
+        logs.access_logger.queue_log_fields(XDS_RESPONSE_SOURCE="inline")
         return response
 
     request_hash = request.cache_key(config.cache.hash_rules)
@@ -92,7 +92,7 @@ async def wait_for_discovery_response(
                 "source:from_db",
             ],
         )
-        logs.access_logger.queue_log_fields(CACHE_XDS_HIT="hit")
+        logs.access_logger.queue_log_fields(XDS_RESPONSE_SOURCE="immediately")
         return discovery_entry.response
 
     # enqueue a job to render this discovery request
@@ -116,7 +116,6 @@ async def wait_for_discovery_response(
         discovery_entry = discovery_entry_repository.get(request_hash)
         if discovery_entry is None:
             logger.error("No discovery entry found while polling for response")
-            logs.access_logger.queue_log_fields(CACHE_XDS_HIT="miss")
             return None
         await asyncio.sleep(config.cache.poll_interval_secs)
 
@@ -137,7 +136,7 @@ async def wait_for_discovery_response(
                 "source:after_polling",
             ],
         )
-        logs.access_logger.queue_log_fields(CACHE_XDS_HIT="miss")
+        logs.access_logger.queue_log_fields(XDS_RESPONSE_SOURCE="after_polling")
     else:
         logger.error(
             "Timeout waiting for response", attempts=attempts, elapsed_time=elapsed_time
@@ -147,6 +146,5 @@ async def wait_for_discovery_response(
             "v2.worker.discovery_response",
             tags=[f"template:{request.template.resource_type}", "result:timed_out"],
         )
-        logs.access_logger.queue_log_fields(CACHE_XDS_HIT="miss")
 
     return discovery_entry.response

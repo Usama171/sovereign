@@ -322,6 +322,10 @@ class SqliteDataStore(DataStoreProtocol):
         conn = sqlite3.connect(
             self.db_path, check_same_thread=False, isolation_level=None
         )
+        # Enable WAL mode for better concurrent read/write performance
+        conn.execute("PRAGMA journal_mode=WAL")
+        # Set busy timeout to 5 seconds to retry on lock contention instead of failing immediately
+        conn.execute("PRAGMA busy_timeout=5000")
         # configure the connection to return rows as sqlite3.Row objects,
         # allowing access to columns by name as well as by index.
         conn.row_factory = sqlite3.Row

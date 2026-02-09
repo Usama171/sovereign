@@ -5,10 +5,11 @@ import threading
 
 from structlog.typing import FilteringBoundLogger
 
-from sovereign import config, stats
+from sovereign import config, logs, stats
 from sovereign.types import DiscoveryRequest, DiscoveryResponse
-from sovereign.v2.data.repositories import DiscoveryEntryRepository
-from sovereign.v2.data.utils import get_queue, get_data_store_web
+from sovereign.v2.data.repositories import ContextRepository, DiscoveryEntryRepository
+from sovereign.v2.data.utils import get_data_store_web, get_queue
+from sovereign.v2.jobs.render_discovery_job import render_template_to_response
 from sovereign.v2.logging import get_named_logger
 from sovereign.v2.types import DiscoveryEntry, RenderDiscoveryJob
 
@@ -16,26 +17,50 @@ from sovereign.v2.types import DiscoveryEntry, RenderDiscoveryJob
 async def wait_for_discovery_response(
     request: DiscoveryRequest,
 ) -> DiscoveryResponse | None:
-    # 1 - check if the entry already exists in the database with a non-empty response
-    # 2 - if it does, return it
-    # 3 - if it doesn't, enqueue a new job to render it
-    # 4 - poll for up to CACHE_READ_TIMEOUT seconds, if we find a response, return it
-
-    request_hash = request.cache_key(config.cache.hash_rules)
+    # 1 - if cache_bust is set, render inline without persisting
+    # 2 - check if the entry already exists in the database with a non-empty response
+    # 3 - if it does, return it
+    # 4 - if it doesn't, enqueue a new job to render it
+    # 5 - poll for up to CACHE_READ_TIMEOUT seconds, if we find a response, return it
 
     logger: FilteringBoundLogger = get_named_logger(
         f"{__name__}.{wait_for_discovery_response.__qualname__} ({__file__})",
         level=logging.DEBUG,
     ).bind(
-        request_hash=request_hash,
         template=request.template.resource_type,
         process_id=os.getpid(),
         thread_id=threading.get_ident(),
     )
 
+    data_store = get_data_store_web()
+
+    # cache_bust bypass: render inline without persisting to avoid unbounded growth
+    if request.node.metadata.get("cache_bust"):
+        logger.info("cache_bust detected, rendering inline without caching")
+        context_repository = ContextRepository(data_store)
+        try:
+            response = await asyncio.to_thread(
+                render_template_to_response, request, context_repository, logger
+            )
+        except Exception:
+            logs.access_logger.queue_log_fields(CACHE_XDS_HIT="bypass")
+            raise
+        stats.increment(
+            "v2.worker.discovery_response",
+            tags=[
+                f"template:{request.template.resource_type}",
+                "result:success" if response else "result:error",
+                "source:cache_bust_inline",
+            ],
+        )
+        logs.access_logger.queue_log_fields(CACHE_XDS_HIT="bypass")
+        return response
+
+    request_hash = request.cache_key(config.cache.hash_rules)
+    logger = logger.bind(request_hash=request_hash)
+
     logger.debug("Starting lookup for discovery response")
 
-    data_store = get_data_store_web()
     discovery_entry_repository = DiscoveryEntryRepository(data_store)
 
     queue = get_queue()
@@ -66,6 +91,7 @@ async def wait_for_discovery_response(
                 "source:from_db",
             ],
         )
+        logs.access_logger.queue_log_fields(CACHE_XDS_HIT="hit")
         return discovery_entry.response
 
     # enqueue a job to render this discovery request
@@ -89,6 +115,7 @@ async def wait_for_discovery_response(
         discovery_entry = discovery_entry_repository.get(request_hash)
         if discovery_entry is None:
             logger.error("No discovery entry found while polling for response")
+            logs.access_logger.queue_log_fields(CACHE_XDS_HIT="miss")
             return None
         await asyncio.sleep(config.cache.poll_interval_secs)
 
@@ -109,6 +136,7 @@ async def wait_for_discovery_response(
                 "source:after_polling",
             ],
         )
+        logs.access_logger.queue_log_fields(CACHE_XDS_HIT="miss")
     else:
         logger.error(
             "Timeout waiting for response", attempts=attempts, elapsed_time=elapsed_time
@@ -118,5 +146,6 @@ async def wait_for_discovery_response(
             "v2.worker.discovery_response",
             tags=[f"template:{request.template.resource_type}", "result:timed_out"],
         )
+        logs.access_logger.queue_log_fields(CACHE_XDS_HIT="miss")
 
     return discovery_entry.response

@@ -90,6 +90,7 @@ test-envoy-version-worker-v2:
 	mkdir -p logs
 	IMAGE_TAG=$(ENVOY_VERSION) \
 		PYTEST_MARK="`echo $(ENVOY_VERSION) | tr . _` or all" \
+		SOVEREIGN_WORKER_V2_ENABLED=1 \
 		make run-daemon-worker-v2 acceptance
 
 check_version:

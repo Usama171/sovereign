@@ -1,6 +1,7 @@
 from fastapi import Body, Header
 from fastapi.responses import Response
 from fastapi.routing import APIRouter
+from starlette_context import context
 
 from sovereign import cache, config, logs
 from sovereign.cache.types import Entry
@@ -16,7 +17,7 @@ from sovereign.views import reader
 def response_headers(
     discovery_request: DiscoveryRequest, response: Entry, xds: str
 ) -> dict[str, str]:
-    return {
+    headers = {
         "X-Sovereign-Client-Build": discovery_request.envoy_version,
         "X-Sovereign-Client-Version": discovery_request.version_info,
         "X-Sovereign-Requested-Resources": ",".join(discovery_request.resource_names)
@@ -24,6 +25,10 @@ def response_headers(
         "X-Sovereign-Requested-Type": xds,
         "X-Sovereign-Response-Version": response.version,
     }
+    cache_source = context.data.get("CACHE_XDS_HIT", "")
+    if cache_source:
+        headers["X-Cache"] = cache_source
+    return headers
 
 
 router = APIRouter()

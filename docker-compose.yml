@@ -110,7 +110,9 @@ services:
       -m "${PYTEST_MARK:-not v1_9_0} or all"
     volumes:
       - ./test-reports:/proj/test-reports
-    environment: *test_env_vars
+    environment:
+      <<: *test_env_vars
+      SOVEREIGN_WORKER_V2_ENABLED: "${SOVEREIGN_WORKER_V2_ENABLED:-0}"
     networks:
       - default
 

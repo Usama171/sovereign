@@ -1,0 +1,86 @@
+#file: noinspection YAMLIncompatibleTypes
+---
+test_name: X-Cache header is present on v2 discovery responses
+
+marks:
+  - all
+  - usefixtures:
+      - auth_string
+      - skip_if_not_worker_v2
+
+stages:
+  - name: First request populates cache
+    max_retries: 5
+    delay_after: 2
+    request:
+      url: 'http://sovereign:8080/v3/discovery:clusters'
+      method: POST
+      json: &cache_test_request
+        node:
+          id: envoy
+          cluster: T1
+          build_version: e5f864a82d4f27110359daa2fbdcb12d99e415b9/1.36.0/Clean/RELEASE
+          locality:
+            zone: us-east-1
+          metadata:
+            auth: '{auth_string}'
+            ipv4: 127.0.0.1
+        resource_names: []
+        version_info: '0'
+      headers: &cache_test_headers
+        content-type: application/json
+        accept-encoding: None
+    response:
+      strict: no
+      status_code: 200
+      headers:
+        X-Cache: !anystr
+  - name: Second request returns cache hit
+    request:
+      url: 'http://sovereign:8080/v3/discovery:clusters'
+      method: POST
+      json: *cache_test_request
+      headers: *cache_test_headers
+    response:
+      strict: no
+      status_code: 200
+      headers:
+        X-Cache: hit
+
+---
+test_name: X-Cache header returns bypass for cache_bust requests
+
+marks:
+  - all
+  - usefixtures:
+      - auth_string
+      - skip_if_not_worker_v2
+
+stages:
+  - name: Request with cache_bust metadata
+    max_retries: 5
+    delay_after: 2
+    request:
+      url: 'http://sovereign:8080/v3/discovery:clusters'
+      method: POST
+      json:
+        node:
+          id: envoy
+          cluster: T1
+          build_version: e5f864a82d4f27110359daa2fbdcb12d99e415b9/1.36.0/Clean/RELEASE
+          locality:
+            zone: us-east-1
+          metadata:
+            auth: '{auth_string}'
+            ipv4: 127.0.0.1
+            cache_bust: '1234567890'
+        resource_names: []
+        version_info: '0'
+      headers:
+        content-type: application/json
+        accept-encoding: None
+    response:
+      strict: no
+      status_code: 200
+      headers:
+        X-Cache: bypass

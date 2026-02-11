@@ -1,3 +1,4 @@
+import copy
 import time
 
 from sovereign import stats
@@ -6,12 +7,45 @@ from sovereign.v2.types import Context, DiscoveryEntry, WorkerNode
 
 
 class ContextRepository:
+    """Repository for Context objects with a process-level cache.
+
+    Caches deserialized Context objects to avoid repeated pickle.loads()
+    from the underlying data store. The cache is a class-level dict shared
+    across all instances within the same process, validated against data_hash
+    (cheap column-only query on cache hit).
+
+    Returns deep copies to prevent callers from mutating cached objects.
+
+    Thread safety: relies on CPython's GIL for atomic dict operations.
+    The check-then-update in get() is not atomic, but the worst case is a
+    redundant deserialization (two threads both miss), not data corruption.
+    """
+
+    _cache: dict[str, Context] = {}
+
     def __init__(self, data_store: DataStoreProtocol):
         self.data_store: DataStoreProtocol = data_store
 
     @stats.timed("repository.context.get_ms")
     def get(self, name: str) -> Context | None:
-        return self.data_store.get(DataType.Context, name)
+        cached = self._cache.get(name)
+        if cached is not None:
+            current_hash = self.data_store.get_property(
+                DataType.Context, name, "data_hash"
+            )
+            if current_hash is not None and current_hash == cached.data_hash:
+                stats.increment(
+                    "v2.context_repository.cache.hit", tags=[f"context:{name}"]
+                )
+                return copy.deepcopy(cached)
+
+        context = self.data_store.get(DataType.Context, name)
+        if context is not None:
+            self._cache[name] = context
+        else:
+            self._cache.pop(name, None)
+        stats.increment("v2.context_repository.cache.miss", tags=[f"context:{name}"])
+        return copy.deepcopy(context) if context is not None else None
 
     @stats.timed("v2.repository.context.get_hash_ms")
     def get_hash(self, name: str) -> int | None:
@@ -22,13 +56,21 @@ class ContextRepository:
 
     @stats.timed("v2.repository.context.save_ms")
     def save(self, context: Context) -> bool:
-        return self.data_store.set(DataType.Context, context.name, context)
+        result = self.data_store.set(DataType.Context, context.name, context)
+        if result:
+            self._cache[context.name] = copy.deepcopy(context)
+        else:
+            self._cache.pop(context.name, None)
+        return result
 
     @stats.timed("v2.repository.context.update_refresh_after_ms")
     def update_refresh_after(self, name: str, refresh_after: int) -> bool:
-        return self.data_store.set_property(
+        result = self.data_store.set_property(
             DataType.Context, name, "refresh_after", refresh_after
         )
+        if result:
+            self._cache.pop(name, None)
+        return result
 
 
 class DiscoveryEntryRepository:

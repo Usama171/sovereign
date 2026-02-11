@@ -1,12 +1,6 @@
-from typing import cast
-
 from sovereign import config
 from sovereign.utils.entry_point_loader import EntryPointLoader
-from sovereign.v2.data.data_store import (
-    CachingDataStore,
-    DataStoreProtocol,
-    DataStorePurpose,
-)
+from sovereign.v2.data.data_store import DataStoreProtocol, DataStorePurpose
 from sovereign.v2.data.worker_queue import QueueProtocol
 
 _data_store_web: DataStoreProtocol | None = None
@@ -33,11 +27,10 @@ def get_data_store_web() -> DataStoreProtocol:
     global _data_store_web
 
     if not _data_store_web:
-        inner = _create_new_data_store()
-        inner.set_purpose(DataStorePurpose.Web)
-        if not inner.migrate():
+        _data_store_web = _create_new_data_store()
+        _data_store_web.set_purpose(DataStorePurpose.Web)
+        if not _data_store_web.migrate():
             raise RuntimeError("Data store migration failed")
-        _data_store_web = cast(DataStoreProtocol, CachingDataStore(inner))
 
     return _data_store_web
 
@@ -46,11 +39,10 @@ def get_data_store_worker() -> DataStoreProtocol:
     global _data_store_worker
 
     if not _data_store_worker:
-        inner = _create_new_data_store()
-        inner.set_purpose(DataStorePurpose.Worker)
-        if not inner.migrate():
+        _data_store_worker = _create_new_data_store()
+        _data_store_worker.set_purpose(DataStorePurpose.Worker)
+        if not _data_store_worker.migrate():
             raise RuntimeError("Data store migration failed")
-        _data_store_worker = cast(DataStoreProtocol, CachingDataStore(inner))
 
     return _data_store_worker
 

@@ -1,4 +1,3 @@
-import copy
 import logging
 import pickle
 import sqlite3
@@ -7,7 +6,7 @@ from typing import Any, Protocol
 
 from structlog.typing import FilteringBoundLogger
 
-from sovereign import config, stats
+from sovereign import config
 from sovereign.types import DiscoveryRequest, DiscoveryResponse
 from sovereign.v2.logging import capture_exception, get_named_logger
 from sovereign.v2.types import Context, DiscoveryEntry, WorkerNode
@@ -848,63 +847,3 @@ class SqliteDataStore(DataStoreProtocol):
             )
             capture_exception(e)
             return False
-
-
-class CachingDataStore:
-    """Wrapper that caches Context objects to avoid repeated pickle.loads().
-
-    Wraps any DataStoreProtocol. On get() for Context, checks a process-level
-    cache keyed by name, validated against data_hash (cheap column-only query).
-    Returns deep copies to prevent callers from mutating cached objects.
-
-    Thread safety: relies on CPython's GIL for atomic dict operations.
-    The check-then-update in get() is not atomic, but the worst case is a
-    redundant deserialization (two threads both miss), not data corruption.
-
-    All non-intercepted methods delegate transparently to the inner store.
-    """
-
-    def __init__(self, inner: DataStoreProtocol):
-        self._inner = inner
-        self._cache: dict[str, Context] = {}
-
-    def get(self, data_type: DataType, key: str) -> Any | None:
-        if data_type != DataType.Context:
-            return self._inner.get(data_type, key)
-
-        cached = self._cache.get(key)
-        if cached is not None:
-            current_hash = self._inner.get_property(data_type, key, "data_hash")
-            if current_hash is not None and current_hash == cached.data_hash:
-                stats.increment(
-                    "v2.data_store.context_cache.hit", tags=[f"context:{key}"]
-                )
-                return copy.deepcopy(cached)
-
-        context = self._inner.get(data_type, key)
-        if context is not None:
-            self._cache[key] = context
-        else:
-            self._cache.pop(key, None)
-        stats.increment("v2.data_store.context_cache.miss", tags=[f"context:{key}"])
-        return copy.deepcopy(context) if context is not None else None
-
-    def set(self, data_type: DataType, key: str, value: Any) -> bool:
-        result = self._inner.set(data_type, key, value)
-        if data_type == DataType.Context:
-            if result:
-                self._cache[key] = copy.deepcopy(value)
-            else:
-                self._cache.pop(key, None)
-        return result
-
-    def set_property(
-        self, data_type: DataType, key: str, property_name: str, property_value: Any
-    ) -> bool:
-        result = self._inner.set_property(data_type, key, property_name, property_value)
-        if result and data_type == DataType.Context:
-            self._cache.pop(key, None)
-        return result
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._inner, name)

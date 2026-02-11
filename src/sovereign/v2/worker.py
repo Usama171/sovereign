@@ -185,6 +185,11 @@ class Worker:
                 queue_size = self.queue.size()
                 stats.gauge("v2.worker.queue_size", queue_size)
 
+                # Delete discovery entries that haven't been requested in the last hour
+                self.discovery_entry_repository.prune_stale_entries(
+                    max_age_seconds=3600
+                )
+
                 name: str
                 loadable: Loadable
                 for name, loadable in config.template_context.context.items():

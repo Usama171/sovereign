@@ -300,7 +300,8 @@ class SqliteDataStore(DataStoreProtocol):
             request TEXT,
             response TEXT,
             last_rendered_at INTEGER,
-            rendering_started_at INTEGER
+            rendering_started_at INTEGER,
+            last_requested_at INTEGER
         )
         """)
 
@@ -393,6 +394,7 @@ class SqliteDataStore(DataStoreProtocol):
                     else None,
                     last_rendered_at=row["last_rendered_at"],
                     rendering_started_at=row["rendering_started_at"],
+                    last_requested_at=row["last_requested_at"],
                 )
             case DataType.WorkerNode:
                 return WorkerNode(
@@ -425,6 +427,7 @@ class SqliteDataStore(DataStoreProtocol):
                 else None,
                 "last_rendered_at": obj.last_rendered_at,
                 "rendering_started_at": obj.rendering_started_at,
+                "last_requested_at": obj.last_requested_at,
             }
         elif isinstance(obj, WorkerNode):
             return {
@@ -450,6 +453,7 @@ class SqliteDataStore(DataStoreProtocol):
                 "response",
                 "last_rendered_at",
                 "rendering_started_at",
+                "last_requested_at",
             },
             DataType.WorkerNode: {"node_id", "last_heartbeat"},
         }

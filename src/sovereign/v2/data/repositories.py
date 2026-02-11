@@ -45,6 +45,12 @@ class DiscoveryEntryRepository:
     def get(self, request_hash: str) -> DiscoveryEntry | None:
         return self.data_store.get(DataType.DiscoveryEntry, request_hash)
 
+    @stats.timed("v2.repository.discovery_entry.update_last_requested_at_ms")
+    def update_last_requested_at(self, request_hash: str) -> bool:
+        return self.data_store.set_property(
+            DataType.DiscoveryEntry, request_hash, "last_requested_at", int(time.time())
+        )
+
     @stats.timed("v2.repository.discovery_entry.get_rendering_started_at_ms")
     def get_rendering_started_at(self, request_hash: str) -> int | None:
         return self.data_store.get_property(
@@ -97,6 +103,19 @@ class DiscoveryEntryRepository:
             tags=[f"template:{entry.template}"],
         )
         return self.data_store.set(DataType.DiscoveryEntry, entry.request_hash, entry)
+
+    @stats.timed("v2.repository.discovery_entry.prune_stale_entries_ms")
+    def prune_stale_entries(self, max_age_seconds: int) -> bool:
+        """
+        Delete discovery entries that have not been requested in the last max_age_seconds.
+        """
+        cutoff = int(time.time()) - max_age_seconds
+        return self.data_store.delete_matching(
+            DataType.DiscoveryEntry,
+            "last_requested_at",
+            ComparisonOperator.LessThanOrEqualTo,
+            cutoff,
+        )
 
 
 class WorkerNodeRepository:

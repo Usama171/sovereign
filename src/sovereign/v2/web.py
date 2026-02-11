@@ -86,6 +86,9 @@ async def wait_for_discovery_response(
         )
         discovery_entry_repository.save(discovery_entry)
 
+    # Update last_requested_at to track when this request hash was last requested
+    discovery_entry_repository.update_last_requested_at(request_hash)
+
     if discovery_entry.response:
         logger.debug("Returning cached response immediately")
         stats.increment(

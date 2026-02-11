@@ -7,6 +7,7 @@ from sovereign.v2.data.worker_queue import QueueProtocol
 _data_store_web: DataStoreProtocol | None = None
 _data_store_worker: DataStoreProtocol | None = None
 _context_repository_web: ContextRepository | None = None
+_context_repository_worker: ContextRepository | None = None
 
 
 def _create_new_data_store() -> DataStoreProtocol:
@@ -45,6 +46,16 @@ def get_context_repository_web() -> ContextRepository:
         _context_repository_web.load_all_into_cache()
 
     return _context_repository_web
+
+
+def get_context_repository_worker() -> ContextRepository:
+    global _context_repository_worker
+
+    if not _context_repository_worker:
+        _context_repository_worker = ContextRepository(get_data_store_worker())
+        _context_repository_worker.load_all_into_cache()
+
+    return _context_repository_worker
 
 
 def get_data_store_worker() -> DataStoreProtocol:

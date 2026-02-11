@@ -19,6 +19,13 @@ supervisord_config = SupervisordConfig()
 def web(supervisor_enabled=True) -> None:
     from sovereign.app import app
 
+    if config.worker_v2_enabled:
+        from sovereign.v2.data.utils import get_context_repository_web
+
+        log.info("Pre-warming context")
+        get_context_repository_web()
+        log.info("Context warmup complete")
+
     log.debug("Starting web server")
 
     if not supervisor_enabled:

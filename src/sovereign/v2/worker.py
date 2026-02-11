@@ -15,7 +15,7 @@ from sovereign.v2.data.repositories import (
     DiscoveryEntryRepository,
     WorkerNodeRepository,
 )
-from sovereign.v2.data.utils import get_data_store_worker, get_queue
+from sovereign.v2.data.utils import get_context_repository_worker, get_queue
 from sovereign.v2.data.worker_queue import QueueProtocol
 from sovereign.v2.jobs.refresh_context import get_refresh_after, refresh_context
 from sovereign.v2.jobs.render_discovery_job import render_discovery_response
@@ -51,9 +51,12 @@ class Worker:
             else f"{time.time()}.{os.getpid()}.{random.randint(0, 1000000)}"
         )
 
-        data_store = data_store if data_store is not None else get_data_store_worker()
+        if data_store is not None:
+            self.context_repository = ContextRepository(data_store)
+        else:
+            self.context_repository = get_context_repository_worker()
+            data_store = self.context_repository.data_store
 
-        self.context_repository = ContextRepository(data_store)
         self.discovery_entry_repository = DiscoveryEntryRepository(data_store)
         self.worker_node_repository = WorkerNodeRepository(data_store)
 

@@ -1,6 +1,23 @@
 Changelog
 =========
 
+1.0.0b181 (2026-02-11)
+----------------------
+
+### Performance
+
+* **v2 worker**: Added `CachingDataStore` wrapper that caches deserialized
+  `Context` objects in-process, avoiding repeated `pickle.loads()` on large
+  context blobs from SQLite. Cache entries are validated on each read via a
+  cheap single-column `data_hash` query and invalidated automatically when
+  the hash changes or `set_property` is called. Deep copies are returned to
+  callers to prevent mutation of cached objects.
+
+### Metrics Added
+
+* `v2.data_store.context_cache.hit` with tag `context:{name}` - cache hit
+* `v2.data_store.context_cache.miss` with tag `context:{name}` - cache miss
+
 1.0.0b179 (2026-02-09)
 ----------------------
 

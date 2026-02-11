@@ -11,6 +11,7 @@ from sovereign import __version__
 from sovereign.configuration import XDS_TEMPLATES, config
 from sovereign.response_class import json_response_class
 from sovereign.utils.mock import mock_discovery_request
+from sovereign.v2.data.utils import get_context_repository_web
 from sovereign.v2.web import wait_for_discovery_response
 from sovereign.views import reader
 
@@ -90,7 +91,9 @@ async def deep_check(
                 template,
                 expressions=[f"cluster={envoy_service_cluster}"],
             )
-            response = await wait_for_discovery_response(discovery_request)
+            response = await wait_for_discovery_response(
+                discovery_request, get_context_repository_web()
+            )
             if response:
                 return template, "OK"
             else:

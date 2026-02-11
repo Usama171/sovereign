@@ -2,7 +2,6 @@ import copy
 import time
 
 from sovereign import config, stats
-from sovereign.dynamic_config import Loadable
 from sovereign.v2.data.data_store import ComparisonOperator, DataStoreProtocol, DataType
 from sovereign.v2.types import Context, DiscoveryEntry, WorkerNode
 
@@ -27,18 +26,16 @@ class ContextRepository:
     def __init__(self, data_store: DataStoreProtocol):
         self.data_store: DataStoreProtocol = data_store
 
-    @stats.timed("repository.context.load_all_into_cache_ms")
+    @stats.timed("v2.repository.context.load_all_into_cache_ms")
     def load_all_into_cache(self) -> None:
         """Load all contexts from the data store into the cache.
 
         Useful for warming up the cache at startup to avoid cold misses.
         """
-        name: str
-        loadable: Loadable
-        for name, loadable in config.template_context.context.items():
+        for name in config.template_context.context:
             self.get(name)
 
-    @stats.timed("repository.context.get_ms")
+    @stats.timed("v2.repository.context.get_ms")
     def get(self, name: str) -> Context | None:
         cached = self._cache.get(name)
         if cached is not None:
@@ -47,7 +44,7 @@ class ContextRepository:
             )
             if current_hash is not None and current_hash == cached.data_hash:
                 stats.increment(
-                    "v2.context_repository.cache.hit", tags=[f"context:{name}"]
+                    "v2.repository.context.cache.hit", tags=[f"context:{name}"]
                 )
                 return copy.deepcopy(cached)
 
@@ -56,7 +53,7 @@ class ContextRepository:
             self._cache[name] = context
         else:
             self._cache.pop(name, None)
-        stats.increment("v2.context_repository.cache.miss", tags=[f"context:{name}"])
+        stats.increment("v2.repository.context.cache.miss", tags=[f"context:{name}"])
         return copy.deepcopy(context) if context is not None else None
 
     @stats.timed("v2.repository.context.get_hash_ms")

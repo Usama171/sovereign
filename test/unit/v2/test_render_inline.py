@@ -6,7 +6,7 @@ from starlette_context import context
 from sovereign.types import DiscoveryResponse
 from sovereign.utils.mock import mock_discovery_request
 from sovereign.v2.data.data_store import InMemoryDataStore
-from sovereign.v2.data.repositories import DiscoveryEntryRepository
+from sovereign.v2.data.repositories import ContextRepository, DiscoveryEntryRepository
 from sovereign.v2.data.worker_queue import InMemoryQueue
 from sovereign.v2.types import DiscoveryEntry
 from sovereign.v2.web import wait_for_discovery_response
@@ -15,6 +15,12 @@ from sovereign.v2.web import wait_for_discovery_response
 @pytest.fixture(scope="function")
 def data_store() -> InMemoryDataStore:
     return InMemoryDataStore()
+
+
+@pytest.fixture(scope="function")
+def context_repository(data_store: InMemoryDataStore) -> ContextRepository:
+    ContextRepository._cache.clear()
+    return ContextRepository(data_store)
 
 
 @pytest.fixture(scope="function")
@@ -33,6 +39,7 @@ def mock_response() -> DiscoveryResponse:
 @pytest.mark.asyncio
 async def test_render_inline_renders_inline(
     data_store: InMemoryDataStore,
+    context_repository: ContextRepository,
     queue: InMemoryQueue,
     mock_response: DiscoveryResponse,
 ):
@@ -50,7 +57,7 @@ async def test_render_inline_renders_inline(
             return_value=mock_response,
         ) as mock_render,
     ):
-        result = await wait_for_discovery_response(request)
+        result = await wait_for_discovery_response(request, context_repository)
 
     # render_template_to_response should have been called
     mock_render.assert_called_once()
@@ -70,6 +77,7 @@ async def test_render_inline_renders_inline(
 @pytest.mark.asyncio
 async def test_no_render_inline_uses_normal_flow(
     data_store: InMemoryDataStore,
+    context_repository: ContextRepository,
     queue: InMemoryQueue,
     mock_response: DiscoveryResponse,
 ):
@@ -90,7 +98,7 @@ async def test_no_render_inline_uses_normal_flow(
         mock_config.cache.hash_rules = []
         mock_config.cache.read_timeout = 0.1
         mock_config.cache.poll_interval_secs = 0.05
-        await wait_for_discovery_response(request)
+        await wait_for_discovery_response(request, context_repository)
 
     # render_template_to_response should NOT have been called directly
     mock_render.assert_not_called()
@@ -103,6 +111,7 @@ async def test_no_render_inline_uses_normal_flow(
 @pytest.mark.asyncio
 async def test_empty_render_inline_uses_normal_flow(
     data_store: InMemoryDataStore,
+    context_repository: ContextRepository,
     queue: InMemoryQueue,
 ):
     """Empty/falsy render_inline means normal flow is used."""
@@ -122,7 +131,7 @@ async def test_empty_render_inline_uses_normal_flow(
         mock_config.cache.hash_rules = []
         mock_config.cache.read_timeout = 0.1
         mock_config.cache.poll_interval_secs = 0.05
-        await wait_for_discovery_response(request)
+        await wait_for_discovery_response(request, context_repository)
 
     # render_template_to_response should NOT have been called (empty string is falsy)
     mock_render.assert_not_called()
@@ -134,6 +143,7 @@ async def test_empty_render_inline_uses_normal_flow(
 @pytest.mark.asyncio
 async def test_from_db_sets_immediately_in_context(
     data_store: InMemoryDataStore,
+    context_repository: ContextRepository,
     queue: InMemoryQueue,
     mock_response: DiscoveryResponse,
 ):
@@ -166,7 +176,7 @@ async def test_from_db_sets_immediately_in_context(
         patch("sovereign.v2.web.config") as mock_config,
     ):
         mock_config.cache.hash_rules = []
-        result = await wait_for_discovery_response(request)
+        result = await wait_for_discovery_response(request, context_repository)
 
     assert result is not None
     assert result.version_info == "test_version_123"

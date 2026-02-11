@@ -10,6 +10,7 @@ from sovereign.types import (
     DiscoveryResponse,
 )
 from sovereign.utils.auth import authenticate
+from sovereign.v2.data.utils import get_context_repository_web
 from sovereign.v2.web import wait_for_discovery_response
 from sovereign.views import reader
 
@@ -79,7 +80,9 @@ async def discovery_response(
 
     if config.worker_v2_enabled:
         # we're set up to use v2 of the worker
-        response = await wait_for_discovery_response(xds_req)
+        response = await wait_for_discovery_response(
+            xds_req, get_context_repository_web()
+        )
         if response is not None:
             entry = Entry(
                 text=response.model_dump_json(indent=None),

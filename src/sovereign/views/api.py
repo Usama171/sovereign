@@ -7,8 +7,7 @@ from fastapi.responses import Response
 from sovereign.cache import Entry
 from sovereign.configuration import ConfiguredResourceTypes, config
 from sovereign.utils.mock import mock_discovery_request
-from sovereign.v2.data.repositories import ContextRepository
-from sovereign.v2.data.utils import get_data_store_web
+from sovereign.v2.data.utils import get_context_repository_web
 from sovereign.v2.web import wait_for_discovery_response
 from sovereign.views import reader
 
@@ -29,9 +28,6 @@ def expand_metadata_to_expr(m):
     yield from _traverse(m, "", exprs)
 
 
-_context_repository = ContextRepository(get_data_store_web())
-
-
 # noinspection DuplicatedCode
 @router.get("/resources/{resource_type}", summary="Get resources for a given type")
 async def resource(
@@ -43,8 +39,6 @@ async def resource(
     version: Optional[str] = Query(None, title="Envoy Semantic Version"),
     metadata: Optional[str] = Query(None, title="Envoy node metadata to filter by"),
 ) -> Response:
-    global _context_repository
-
     expressions = [f"cluster={service_cluster}"]
     try:
         data = {"metadata": json.loads(metadata or "{}")}
@@ -66,7 +60,9 @@ async def resource(
 
     if config.worker_v2_enabled:
         # we're set up to use v2 of the worker
-        discovery_response = await wait_for_discovery_response(req, _context_repository)
+        discovery_response = await wait_for_discovery_response(
+            req, get_context_repository_web()
+        )
         if discovery_response is not None:
             entry = Entry(
                 text=discovery_response.model_dump_json(indent=None),

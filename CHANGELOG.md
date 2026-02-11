@@ -17,8 +17,8 @@ Changelog
 
 ### Metrics Added
 
-* `v2.context_repository.cache.hit` with tag `context:{name}` - cache hit
-* `v2.context_repository.cache.miss` with tag `context:{name}` - cache miss
+* `v2.repository.context.cache.hit` with tag `context:{name}` - cache hit
+* `v2.repository.context.cache.miss` with tag `context:{name}` - cache miss
 
 1.0.0b179 (2026-02-09)
 ----------------------

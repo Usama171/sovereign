@@ -1,10 +1,12 @@
 from sovereign import config
 from sovereign.utils.entry_point_loader import EntryPointLoader
 from sovereign.v2.data.data_store import DataStoreProtocol, DataStorePurpose
+from sovereign.v2.data.repositories import ContextRepository
 from sovereign.v2.data.worker_queue import QueueProtocol
 
 _data_store_web: DataStoreProtocol | None = None
 _data_store_worker: DataStoreProtocol | None = None
+_context_repository_web: ContextRepository | None = None
 
 
 def _create_new_data_store() -> DataStoreProtocol:
@@ -33,6 +35,16 @@ def get_data_store_web() -> DataStoreProtocol:
             raise RuntimeError("Data store migration failed")
 
     return _data_store_web
+
+
+def get_context_repository_web() -> ContextRepository:
+    global _context_repository_web
+
+    if not _context_repository_web:
+        _context_repository_web = ContextRepository(get_data_store_web())
+        _context_repository_web.load_all_into_cache()
+
+    return _context_repository_web
 
 
 def get_data_store_worker() -> DataStoreProtocol:

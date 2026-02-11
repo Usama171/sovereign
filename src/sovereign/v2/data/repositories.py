@@ -1,7 +1,8 @@
 import copy
 import time
 
-from sovereign import stats
+from sovereign import config, stats
+from sovereign.dynamic_config import Loadable
 from sovereign.v2.data.data_store import ComparisonOperator, DataStoreProtocol, DataType
 from sovereign.v2.types import Context, DiscoveryEntry, WorkerNode
 
@@ -25,6 +26,17 @@ class ContextRepository:
 
     def __init__(self, data_store: DataStoreProtocol):
         self.data_store: DataStoreProtocol = data_store
+
+    @stats.timed("repository.context.load_all_into_cache_ms")
+    def load_all_into_cache(self) -> None:
+        """Load all contexts from the data store into the cache.
+
+        Useful for warming up the cache at startup to avoid cold misses.
+        """
+        name: str
+        loadable: Loadable
+        for name, loadable in config.template_context.context.items():
+            self.get(name)
 
     @stats.timed("repository.context.get_ms")
     def get(self, name: str) -> Context | None:

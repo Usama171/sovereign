@@ -1,3 +1,5 @@
+from typing import cast
+
 from sovereign import config
 from sovereign.utils.entry_point_loader import EntryPointLoader
 from sovereign.v2.data.data_store import (
@@ -35,7 +37,7 @@ def get_data_store_web() -> DataStoreProtocol:
         inner.set_purpose(DataStorePurpose.Web)
         if not inner.migrate():
             raise RuntimeError("Data store migration failed")
-        _data_store_web = CachingDataStore(inner)
+        _data_store_web = cast(DataStoreProtocol, CachingDataStore(inner))
 
     return _data_store_web
 
@@ -48,7 +50,7 @@ def get_data_store_worker() -> DataStoreProtocol:
         inner.set_purpose(DataStorePurpose.Worker)
         if not inner.migrate():
             raise RuntimeError("Data store migration failed")
-        _data_store_worker = CachingDataStore(inner)
+        _data_store_worker = cast(DataStoreProtocol, CachingDataStore(inner))
 
     return _data_store_worker
 

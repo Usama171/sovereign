@@ -192,6 +192,10 @@ class Worker:
                 self.discovery_entry_repository.prune_stale_entries(
                     max_age_seconds=3600
                 )
+                stats.gauge(
+                    "v2.worker.discovery_entries",
+                    self.discovery_entry_repository.count_entries(max_age_seconds=3600),
+                )
 
                 name: str
                 loadable: Loadable

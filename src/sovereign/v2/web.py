@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import threading
+import time
 
 from structlog.typing import FilteringBoundLogger
 
@@ -82,6 +83,7 @@ async def wait_for_discovery_response(
             template=request.template.resource_type,
             request=request,
             response=None,
+            last_requested_at=int(time.time()),
         )
         discovery_entry_repository.save(discovery_entry)
 

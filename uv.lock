@@ -1368,7 +1368,7 @@ wheels = [
 
 [[package]]
 name = "sovereign"
-version = "1.0.0b182"
+version = "1.0.0b183"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },

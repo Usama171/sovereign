@@ -92,6 +92,20 @@ class DiscoveryEntryRepository:
             DataType.DiscoveryEntry, request_hash, "rendering_started_at", None
         )
 
+    @stats.timed("v2.repository.discovery_entry.count_entries_ms")
+    def count_entries(self, max_age_seconds: int) -> int:
+        """
+        Count of requests in the database.
+        """
+        now = int(time.time())
+        return self.data_store.count_matching(
+            DataType.DiscoveryEntry,
+            "last_requested_at",
+            ComparisonOperator.GreaterThan,
+            now
+            - max_age_seconds,  # only count entries that have been requested in the last hour
+        )
+
     @stats.timed("v2.repository.discovery_entry.get_ms")
     def get(self, request_hash: str) -> DiscoveryEntry | None:
         return self.data_store.get(DataType.DiscoveryEntry, request_hash)

@@ -1,6 +1,20 @@
 Changelog
 =========
 
+1.0.0b185 (2026-02-13)
+----------------------
+
+### Bug Fixes
+
+* **v2 worker**: Fixed LIFO queue ordering in `SqliteQueue.get()` that caused
+  render job starvation. The SQLite queue used `ORDER BY id DESC` (stack/LIFO)
+  instead of `ORDER BY id ASC` (queue/FIFO), meaning newly queued jobs were
+  always processed before older ones. When a context change (e.g. ip_lists)
+  queued render jobs for all dependent discovery entries, only the most recent
+  jobs would be processed while the rest were starved by a continuous stream of
+  higher-priority newer jobs. This caused some controlplane instances to
+  permanently serve stale listener configurations.
+
 1.0.0b182 (2026-02-11)
 ----------------------
 

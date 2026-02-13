@@ -132,7 +132,7 @@ class SqliteQueue(QueueProtocol):
                     cursor = conn.execute(
                         """
                         DELETE FROM queue
-                        WHERE id = (SELECT id FROM queue ORDER BY id DESC LIMIT 1)
+                        WHERE id = (SELECT id FROM queue ORDER BY id ASC LIMIT 1)
                         RETURNING id, data
                         """
                     )

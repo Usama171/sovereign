@@ -124,7 +124,7 @@ class Worker:
 
         match job:
             case RefreshContextJob():
-                logger = logger.bind(name=job.context_name)
+                logger = logger.bind(context=job.context_name)
                 logger.info("Processing job from queue")
 
                 return refresh_context(

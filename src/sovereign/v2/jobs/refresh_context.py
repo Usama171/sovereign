@@ -36,7 +36,7 @@ def refresh_context(
             f"{__name__}.{refresh_context.__qualname__} ({__file__})",
             level=logging.DEBUG,
         ).bind(
-            name=name,
+            context=name,
             node_id=node_id,
             process_id=os.getpid(),
             thread_id=threading.get_ident(),
@@ -78,7 +78,6 @@ def refresh_context(
                 for request_hash, template in request_hashes.items():
                     logger.info(
                         "Queuing render for discovery request because context changed",
-                        context=name,
                         request_hash=request_hash,
                         template=template,
                     )

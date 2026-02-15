@@ -106,7 +106,7 @@ def write_supervisor_conf() -> Path:
     if config.worker_v2_enabled:
         conf["program:data"] = worker = {
             **base,
-            "numprocs": str(max(1, int((multiprocessing.cpu_count() / 2) - 1))),
+            "numprocs": str(max(1, int(multiprocessing.cpu_count() - 1))),
             "command": "sovereign-worker",
             "process_name": "sovereign-worker-%(process_num)s",
         }

@@ -126,6 +126,7 @@ class TestCacheReader:
             cfg.cache.local_fs_path = temp_cache_dir
             cfg.cache.remote_backend = None
             cfg.cache.hash_rules = ["node.cluster"]
+            cfg.cache.effective_hash_rules = lambda rt: ["node.cluster"]
 
             from sovereign.cache import CacheReader, client_id
             from sovereign.cache.backends.s3 import S3Backend
@@ -159,6 +160,7 @@ class TestCacheReader:
             cfg.cache.local_fs_path = temp_cache_dir
             cfg.cache.remote_backend = None
             cfg.cache.hash_rules = ["node.cluster"]
+            cfg.cache.effective_hash_rules = lambda rt: ["node.cluster"]
 
             from sovereign.cache import CacheReader
             from sovereign.cache.backends.s3 import S3Backend
@@ -206,6 +208,7 @@ class TestCacheReader:
             cfg.cache.local_fs_path = temp_cache_dir
             cfg.cache.remote_backend = None
             cfg.cache.hash_rules = ["node.cluster"]
+            cfg.cache.effective_hash_rules = lambda rt: ["node.cluster"]
 
             from sovereign.cache import CacheReader, client_id
             from sovereign.cache.backends.s3 import S3Backend
@@ -250,6 +253,7 @@ class TestCacheReader:
             cfg.cache.local_fs_path = temp_cache_dir
             cfg.cache.remote_backend = None
             cfg.cache.hash_rules = ["node.cluster"]
+            cfg.cache.effective_hash_rules = lambda rt: ["node.cluster"]
 
             from sovereign.cache import CacheReader
             from sovereign.cache.filesystem import FilesystemCache
@@ -280,6 +284,7 @@ class TestCacheWriter:
             cfg.cache.local_fs_path = temp_cache_dir
             cfg.cache.remote_backend = None
             cfg.cache.hash_rules = ["node.cluster"]
+            cfg.cache.effective_hash_rules = lambda rt: ["node.cluster"]
 
             from sovereign.cache import CacheWriter
             from sovereign.cache.backends.s3 import S3Backend
@@ -311,6 +316,7 @@ class TestCacheWriter:
             cfg.cache.local_fs_path = temp_cache_dir
             cfg.cache.remote_backend = None
             cfg.cache.hash_rules = ["node.cluster"]
+            cfg.cache.effective_hash_rules = lambda rt: ["node.cluster"]
 
             from sovereign.cache import CacheWriter
             from sovereign.cache.backends.s3 import S3Backend

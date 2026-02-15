@@ -74,6 +74,9 @@ authentication:
 cache:
   read_timeout: 20
   local_fs_path: /var/run/sovereign_cache
+  extra_hash_rules:
+    clusters:
+      - node.metadata.ipv4
   remote_backend:
     type: s3
     config:

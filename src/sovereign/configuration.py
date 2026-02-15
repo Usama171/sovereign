@@ -463,6 +463,14 @@ class CacheConfiguration(BaseModel):
         default_factory=default_hash_rules,
         description="The set of JMES expressions against incoming Discovery Requests used to form a cache key.",
     )
+    extra_hash_rules: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description=(
+            "Additional JMES expressions to include in the cache key for specific resource types. "
+            "Keys are resource type names (e.g., 'clusters', 'routes'). "
+            "Values are lists of JMES expressions appended to hash_rules for that resource type."
+        ),
+    )
     poll_interval_secs: float = Field(
         0.5,
         description="How many seconds to wait between each read attempt from the cache",
@@ -478,6 +486,13 @@ class CacheConfiguration(BaseModel):
     remote_backend: CacheBackendConfig | None = Field(
         None, description="Remote cache backend configuration"
     )
+
+    def effective_hash_rules(self, resource_type: str | None) -> list[str]:
+        """Return hash_rules merged with any extra_hash_rules for the given resource type."""
+        rules = list(self.hash_rules)
+        if resource_type and resource_type in self.extra_hash_rules:
+            rules.extend(self.extra_hash_rules[resource_type])
+        return list(dict.fromkeys(rules))
 
 
 # noinspection PyArgumentList

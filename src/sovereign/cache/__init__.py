@@ -242,4 +242,4 @@ class CacheWriter(CacheManagerBase):
 
 
 def client_id(req: DiscoveryRequest) -> str:
-    return req.cache_key(config.cache.hash_rules)
+    return req.cache_key(config.cache.effective_hash_rules(req.resource_type))

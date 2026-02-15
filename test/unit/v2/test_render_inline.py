@@ -96,6 +96,7 @@ async def test_no_render_inline_uses_normal_flow(
         patch("sovereign.v2.web.config") as mock_config,
     ):
         mock_config.cache.hash_rules = []
+        mock_config.cache.effective_hash_rules = lambda rt: []
         mock_config.cache.read_timeout = 0.1
         mock_config.cache.poll_interval_secs = 0.05
         await wait_for_discovery_response(request, context_repository)
@@ -129,6 +130,7 @@ async def test_empty_render_inline_uses_normal_flow(
         patch("sovereign.v2.web.config") as mock_config,
     ):
         mock_config.cache.hash_rules = []
+        mock_config.cache.effective_hash_rules = lambda rt: []
         mock_config.cache.read_timeout = 0.1
         mock_config.cache.poll_interval_secs = 0.05
         await wait_for_discovery_response(request, context_repository)
@@ -160,6 +162,7 @@ async def test_from_db_sets_immediately_in_context(
         patch("sovereign.v2.web.config") as mock_config,
     ):
         mock_config.cache.hash_rules = []
+        mock_config.cache.effective_hash_rules = lambda rt: []
         request_hash = request.cache_key([])
 
     cached_entry = DiscoveryEntry(
@@ -176,6 +179,7 @@ async def test_from_db_sets_immediately_in_context(
         patch("sovereign.v2.web.config") as mock_config,
     ):
         mock_config.cache.hash_rules = []
+        mock_config.cache.effective_hash_rules = lambda rt: []
         result = await wait_for_discovery_response(request, context_repository)
 
     assert result is not None

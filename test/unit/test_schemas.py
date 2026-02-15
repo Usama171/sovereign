@@ -5,6 +5,7 @@ from pydantic import SecretStr, ValidationError
 
 from sovereign.configuration import (
     AuthConfiguration,
+    CacheConfiguration,
     ContextConfiguration,
     EncryptionConfig,
     SupervisordConfig,
@@ -305,3 +306,59 @@ def test_discovery_request_cache_key_is_deterministic():
         )
         new = req.cache_key(default_hash_rules())
         assert new == key
+
+
+class TestEffectiveHashRules:
+    """Tests for CacheConfiguration.effective_hash_rules()."""
+
+    def test_returns_base_rules_when_no_extras(self):
+        cache = CacheConfiguration(hash_rules=["node.cluster", "resource_type"])
+        assert cache.effective_hash_rules("clusters") == [
+            "node.cluster",
+            "resource_type",
+        ]
+
+    def test_appends_extra_rules_for_matching_resource_type(self):
+        cache = CacheConfiguration(
+            hash_rules=["node.cluster", "resource_type"],
+            extra_hash_rules={"clusters": ["node.locality"]},
+        )
+        result = cache.effective_hash_rules("clusters")
+        assert result == ["node.cluster", "resource_type", "node.locality"]
+
+    def test_does_not_append_extras_for_non_matching_type(self):
+        cache = CacheConfiguration(
+            hash_rules=["node.cluster", "resource_type"],
+            extra_hash_rules={"clusters": ["node.locality"]},
+        )
+        result = cache.effective_hash_rules("secrets")
+        assert result == ["node.cluster", "resource_type"]
+
+    def test_deduplicates_rules(self):
+        cache = CacheConfiguration(
+            hash_rules=["node.cluster", "resource_type"],
+            extra_hash_rules={"clusters": ["node.cluster", "node.locality"]},
+        )
+        result = cache.effective_hash_rules("clusters")
+        assert result == ["node.cluster", "resource_type", "node.locality"]
+
+    def test_none_resource_type_returns_base_rules(self):
+        cache = CacheConfiguration(
+            hash_rules=["node.cluster"],
+            extra_hash_rules={"clusters": ["node.locality"]},
+        )
+        assert cache.effective_hash_rules(None) == ["node.cluster"]
+
+    def test_returns_copy_not_original_reference(self):
+        cache = CacheConfiguration(hash_rules=["a", "b"])
+        result = cache.effective_hash_rules(None)
+        assert result == ["a", "b"]
+        assert result is not cache.hash_rules
+
+    def test_multiple_extra_rules_appended(self):
+        cache = CacheConfiguration(
+            hash_rules=["resource_type"],
+            extra_hash_rules={"clusters": ["node.locality", "node.locality.zone"]},
+        )
+        result = cache.effective_hash_rules("clusters")
+        assert result == ["resource_type", "node.locality", "node.locality.zone"]

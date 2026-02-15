@@ -35,7 +35,9 @@ async def wait_for_discovery_response(
 
     data_store = get_data_store_web()
 
-    request_hash = request.cache_key(config.cache.hash_rules)
+    request_hash = request.cache_key(
+        config.cache.effective_hash_rules(request.resource_type)
+    )
     logger = logger.bind(request_hash=request_hash)
 
     # render_inline: render inline without persisting to avoid unbounded growth

@@ -1,0 +1,144 @@
+#file: noinspection YAMLIncompatibleTypes
+---
+test_name: extra_hash_rules causes different cache keys per resource type
+
+marks:
+  - all
+  - usefixtures:
+      - auth_string
+      - skip_if_not_worker_v2
+
+stages:
+  # --- Clusters: node.metadata.ipv4 IS in extra_hash_rules ---
+
+  - name: Prime cluster cache (Client A - ipv4 127.0.0.1)
+    max_retries: 5
+    delay_after: 2
+    request:
+      url: 'http://sovereign:8080/v3/discovery:clusters'
+      method: POST
+      json: &clusters_client_a
+        node:
+          id: envoy
+          cluster: T1
+          build_version: e5f864a82d4f27110359daa2fbdcb12d99e415b9/1.36.0/Clean/RELEASE
+          locality:
+            zone: us-east-1
+          metadata:
+            auth: '{auth_string}'
+            ipv4: 127.0.0.1
+        resource_names: []
+        version_info: '0'
+      headers: &ehash_headers
+        content-type: application/json
+        accept-encoding: None
+    response:
+      strict: no
+      status_code: 200
+      save:
+        json:
+          cluster_version: version_info
+
+  - name: Confirm cluster cache is warm (Client A returns immediately)
+    request:
+      url: 'http://sovereign:8080/v3/discovery:clusters'
+      method: POST
+      json:
+        <<: *clusters_client_a
+        version_info: '{cluster_version}'
+      headers: *ehash_headers
+    response:
+      strict: no
+      status_code: 304
+      headers:
+        X-Sovereign-Response-Source: immediately
+
+  - name: Different ipv4 causes re-render for clusters (ipv4 in extra_hash_rules)
+    max_retries: 5
+    delay_after: 2
+    request:
+      url: 'http://sovereign:8080/v3/discovery:clusters'
+      method: POST
+      json:
+        node:
+          id: envoy
+          cluster: T1
+          build_version: e5f864a82d4f27110359daa2fbdcb12d99e415b9/1.36.0/Clean/RELEASE
+          locality:
+            zone: us-east-1
+          metadata:
+            auth: '{auth_string}'
+            ipv4: 10.0.0.1
+        resource_names: []
+        version_info: '{cluster_version}'
+      headers: *ehash_headers
+    response:
+      strict: no
+      status_code: 304
+      headers:
+        X-Sovereign-Response-Source: after_polling
+
+  # --- Secrets: node.metadata.ipv4 is NOT in extra_hash_rules ---
+
+  - name: Prime secrets cache (Client A - ipv4 127.0.0.1)
+    max_retries: 5
+    delay_after: 2
+    request:
+      url: 'http://sovereign:8080/v3/discovery:secrets'
+      method: POST
+      json: &secrets_client_a
+        node:
+          id: envoy
+          cluster: T1
+          build_version: e5f864a82d4f27110359daa2fbdcb12d99e415b9/1.36.0/Clean/RELEASE
+          locality:
+            zone: us-east-1
+          metadata:
+            auth: '{auth_string}'
+            ipv4: 127.0.0.1
+        resource_names: ['certificates_1']
+        version_info: '0'
+      headers: *ehash_headers
+    response:
+      strict: no
+      status_code: 200
+      save:
+        json:
+          secret_version: version_info
+
+  - name: Confirm secrets cache is warm (Client A returns immediately)
+    request:
+      url: 'http://sovereign:8080/v3/discovery:secrets'
+      method: POST
+      json:
+        <<: *secrets_client_a
+        version_info: '{secret_version}'
+      headers: *ehash_headers
+    response:
+      strict: no
+      status_code: 304
+      headers:
+        X-Sovereign-Response-Source: immediately
+
+  - name: Different ipv4 still returns from cache for secrets (ipv4 NOT in extra_hash_rules)
+    request:
+      url: 'http://sovereign:8080/v3/discovery:secrets'
+      method: POST
+      json:
+        node:
+          id: envoy
+          cluster: T1
+          build_version: e5f864a82d4f27110359daa2fbdcb12d99e415b9/1.36.0/Clean/RELEASE
+          locality:
+            zone: us-east-1
+          metadata:
+            auth: '{auth_string}'
+            ipv4: 10.0.0.1
+        resource_names: ['certificates_1']
+        version_info: '{secret_version}'
+      headers: *ehash_headers
+    response:
+      strict: no
+      status_code: 304
+      headers:
+        X-Sovereign-Response-Source: immediately

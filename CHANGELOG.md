@@ -1,6 +1,30 @@
 Changelog
 =========
 
+1.0.0b186 (2026-02-15)
+----------------------
+
+### Features
+
+* **cache**: Added per-resource-type hash rules via `extra_hash_rules` config
+  field on `CacheConfiguration`. This is a `dict[str, list[str]]` keyed by
+  resource type (e.g. `clusters`, `routes`, `secrets`), where values are
+  additional JMESPath expressions appended to the base `hash_rules` for that
+  type. This allows fields like `node.locality` to be included in cache keys
+  only for resource types that use them, reducing the number of unique client
+  registrations for types that don't.
+
+  New method `CacheConfiguration.effective_hash_rules(resource_type)` merges
+  base rules with any type-specific extras (with deduplication). Both the v1
+  (`client_id`) and v2 (`wait_for_discovery_response`) cache key call sites
+  now use this method.
+
+### Testing
+
+* Added acceptance test verifying that `extra_hash_rules` produces different
+  cache keys per resource type (worker v2, using `X-Sovereign-Response-Source`
+  header to detect cache hit vs re-render).
+
 1.0.0b185 (2026-02-13)
 ----------------------
 

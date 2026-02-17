@@ -251,7 +251,7 @@ class Worker:
                             - time_now,
                         )
 
-                time.sleep(1)
+                time.sleep(5)
             except Exception as e:
                 stats.increment("v2.worker.context_refresh.error")
                 self.logger.exception("Error while refreshing context")

@@ -38,6 +38,18 @@ def get_data_store_web() -> DataStoreProtocol:
     return _data_store_web
 
 
+def get_data_store_worker() -> DataStoreProtocol:
+    global _data_store_worker
+
+    if not _data_store_worker:
+        _data_store_worker = _create_new_data_store()
+        _data_store_worker.set_purpose(DataStorePurpose.Worker)
+        if not _data_store_worker.migrate():
+            raise RuntimeError("Data store migration failed")
+
+    return _data_store_worker
+
+
 def get_context_repository_web() -> ContextRepository:
     global _context_repository_web
 
@@ -56,18 +68,6 @@ def get_context_repository_worker() -> ContextRepository:
         _context_repository_worker.load_all_into_cache()
 
     return _context_repository_worker
-
-
-def get_data_store_worker() -> DataStoreProtocol:
-    global _data_store_worker
-
-    if not _data_store_worker:
-        _data_store_worker = _create_new_data_store()
-        _data_store_worker.set_purpose(DataStorePurpose.Worker)
-        if not _data_store_worker.migrate():
-            raise RuntimeError("Data store migration failed")
-
-    return _data_store_worker
 
 
 def get_queue() -> QueueProtocol:

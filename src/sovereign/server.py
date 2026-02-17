@@ -1,5 +1,6 @@
 import configparser
 import multiprocessing
+import os
 import tempfile
 import warnings
 from pathlib import Path
@@ -8,12 +9,53 @@ import uvicorn
 
 from sovereign import application_logger as log
 from sovereign.configuration import SovereignAsgiConfig, SupervisordConfig, config
-from sovereign.v2.worker import Worker
 
 # noinspection PyArgumentList
 asgi_config = SovereignAsgiConfig()
 # noinspection PyArgumentList
 supervisord_config = SupervisordConfig()
+
+
+def get_available_cpus() -> int:
+    """
+    Get the number of available CPUs in a container-aware manner.
+
+    In Docker/EC2 environments, multiprocessing.cpu_count() may return the
+    total number of CPUs on the host machine, not the number available to
+    the container. This function checks cgroup limits first (both v1 and v2),
+    then falls back to os.sched_getaffinity() or multiprocessing.cpu_count().
+    """
+    try:
+        # Try cgroup v2 first (newer systems)
+        cgroup_v2_path = Path("/sys/fs/cgroup/cpu.max")
+        if cgroup_v2_path.exists():
+            content = cgroup_v2_path.read_text().strip()
+            quota, period = content.split()
+            if quota != "max":
+                cpu_limit = int(quota) / int(period)
+                return max(1, int(cpu_limit))
+
+        # Try cgroup v1 (older systems / older Docker)
+        quota_path = Path("/sys/fs/cgroup/cpu/cpu.cfs_quota_us")
+        period_path = Path("/sys/fs/cgroup/cpu/cpu.cfs_period_us")
+        if quota_path.exists() and period_path.exists():
+            quota = int(quota_path.read_text().strip())
+            period = int(period_path.read_text().strip())
+            if quota > 0 and period > 0:
+                cpu_limit = quota / period
+                return max(1, int(cpu_limit))
+    except (OSError, ValueError, AttributeError) as e:
+        log.debug(f"Could not read cgroup CPU limits: {e}")
+
+    try:
+        # Use sched_getaffinity if available (Linux)
+        # This respects CPU affinity masks set by Docker --cpuset-cpus
+        return len(os.sched_getaffinity(0))
+    except (AttributeError, OSError):
+        pass
+
+    # Fall back to multiprocessing.cpu_count()
+    return multiprocessing.cpu_count()
 
 
 def web(supervisor_enabled=True) -> None:
@@ -53,6 +95,8 @@ def web(supervisor_enabled=True) -> None:
 
 def worker():
     if config.worker_v2_enabled:
+        from sovereign.v2.worker import Worker
+
         log.debug("Starting worker v2")
         Worker().start()
     else:
@@ -104,9 +148,11 @@ def write_supervisor_conf() -> Path:
     }
 
     if config.worker_v2_enabled:
+        available_cpus = get_available_cpus()
+        num_workers = max(1, int(available_cpus * config.worker_v2_workers_per_core))
         conf["program:data"] = worker = {
             **base,
-            "numprocs": str(max(1, int(multiprocessing.cpu_count() - 1))),
+            "numprocs": str(num_workers),
             "command": "sovereign-worker",
             "process_name": "sovereign-worker-%(process_num)s",
         }

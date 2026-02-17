@@ -533,6 +533,9 @@ class SovereignConfigv2(BaseSettings):
     worker_v2_enabled: Optional[bool] = Field(
         False, alias="SOVEREIGN_WORKER_V2_ENABLED"
     )
+    worker_v2_workers_per_core: float = Field(
+        1.0, alias="SOVEREIGN_WORKER_V2_WORKERS_PER_CORE"
+    )
 
     # Supervisord settings
     supervisord: SupervisordConfig = SupervisordConfig()

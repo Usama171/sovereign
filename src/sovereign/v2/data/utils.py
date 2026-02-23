@@ -55,7 +55,7 @@ def get_context_repository_web() -> ContextRepository:
 
     if not _context_repository_web:
         _context_repository_web = ContextRepository(get_data_store_web())
-        _context_repository_web.load_all_into_cache()
+        # _context_repository_web.load_all_into_cache()
 
     return _context_repository_web
 
@@ -65,7 +65,7 @@ def get_context_repository_worker() -> ContextRepository:
 
     if not _context_repository_worker:
         _context_repository_worker = ContextRepository(get_data_store_worker())
-        _context_repository_worker.load_all_into_cache()
+        # _context_repository_worker.load_all_into_cache()
 
     return _context_repository_worker
 

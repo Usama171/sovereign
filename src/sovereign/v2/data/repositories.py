@@ -198,7 +198,7 @@ class WorkerNodeRepository:
 
     @stats.timed("v2.repository.worker_node.get_leader_ms")
     def get_leader_node_id(self) -> str | None:
-        node: WorkerNode | None = self.data_store.max_by_property(
+        node: WorkerNode | None = self.data_store.min_by_property(
             DataType.WorkerNode, "node_id"
         )
         if node:
@@ -208,14 +208,14 @@ class WorkerNodeRepository:
     @stats.timed("v2.repository.worker_node.prune_ms")
     def prune_dead_nodes(self) -> bool:
         """
-        Remove any nodes that have not sent a heartbeat in the last 10 minutes.
+        Remove any nodes that have not sent a heartbeat in the last 30 seconds.
         """
         now = int(time.time())
         return self.data_store.delete_matching(
             DataType.WorkerNode,
             "last_heartbeat",
             ComparisonOperator.LessThanOrEqualTo,
-            now - 600,
+            now - 30,
         )
 
     @stats.timed("v2.repository.worker_node.count_active_ms")

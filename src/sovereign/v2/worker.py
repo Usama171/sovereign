@@ -161,6 +161,7 @@ class Worker:
                 self.worker_node_repository.send_heartbeat(self.node_id)
                 self.worker_node_repository.prune_dead_nodes()
 
+                # check if we're the leader every 15 seconds
                 if not self.worker_node_repository.get_leader_node_id() == self.node_id:
                     is_leader = False
                     self.logger.info(
@@ -169,7 +170,7 @@ class Worker:
                         process_id=os.getpid(),
                         thread_id=threading.get_ident(),
                     )
-                    time.sleep(60)
+                    time.sleep(15)
                     continue
 
                 # I am the leader
@@ -188,7 +189,7 @@ class Worker:
                 queue_size = self.queue.size()
                 stats.gauge("v2.worker.queue_size", queue_size)
 
-                # Delete discovery entries that haven't been requested in the last hour
+                # delete discovery entries that haven't been requested in the last hour
                 self.discovery_entry_repository.prune_stale_entries(
                     max_age_seconds=3600
                 )

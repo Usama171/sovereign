@@ -21,33 +21,33 @@ def test_get_leader(
     data_store: DataStoreProtocol, worker_node_repository: WorkerNodeRepository
 ):
     """
-    Leader should be the node with the greatest ID (when sorted lexicographically).
+    Leader should be the node with the smallest ID (when sorted lexicographically).
     """
+
+    # add a node that is the leader (smallest ID)
+    data_store.set(
+        DataType.WorkerNode,
+        "AAA leader",
+        WorkerNode(node_id="AAA leader", last_heartbeat=int(time.time())),
+    )
 
     # add a node that's not the leader
     data_store.set(
         DataType.WorkerNode,
-        "AAA not leader",
-        WorkerNode(node_id="AAA not leader", last_heartbeat=int(time.time())),
-    )
-
-    # add a node that is the leader (greatest ID)
-    data_store.set(
-        DataType.WorkerNode,
-        "ZZZ leader",
-        WorkerNode(node_id="ZZZ leader", last_heartbeat=int(time.time())),
+        "ZZZ not leader",
+        WorkerNode(node_id="ZZZ not leader", last_heartbeat=int(time.time())),
     )
 
     leader_node_id = worker_node_repository.get_leader_node_id()
 
-    assert leader_node_id == "ZZZ leader"
+    assert leader_node_id == "AAA leader"
 
 
 def test_prune(
     data_store: DataStoreProtocol, worker_node_repository: WorkerNodeRepository
 ):
     """
-    Nodes with heartbeats older than 10 minutes should be pruned. Keeps healthy nodes.
+    Nodes with heartbeats older than 30 seconds should be pruned. Keeps healthy nodes.
     """
 
     # add a node to be pruned
@@ -56,7 +56,7 @@ def test_prune(
         "dead_node_id",
         WorkerNode(
             node_id="dead_node_id",
-            last_heartbeat=int(time.time()) - 700,  # 11 minutes ago to force pruning
+            last_heartbeat=int(time.time()) - 60,  # 60 seconds ago to force pruning
         ),
     )
 
@@ -66,7 +66,7 @@ def test_prune(
         "alive_node_id",
         WorkerNode(
             node_id="alive_node_id",
-            last_heartbeat=int(time.time()) - 60,  # 1 minute ago to force keeping
+            last_heartbeat=int(time.time()) - 10,  # 10 seconds ago to force keeping
         ),
     )
 

@@ -74,6 +74,11 @@ class DataStoreProtocol(Protocol):
     def get_property(
         self, data_type: DataType, key: str, property_name: str
     ) -> Any | None: ...
+    def min_by_property(
+        self,
+        data_type: DataType,
+        property_name: str,
+    ) -> Any | None: ...
     def max_by_property(
         self,
         data_type: DataType,
@@ -219,6 +224,16 @@ class InMemoryDataStore(DataStoreProtocol):
         if value := self.get(data_type, key):
             return getattr(value, property_name)
         return None
+
+    def min_by_property(
+        self,
+        data_type: DataType,
+        property_name: str,
+    ) -> Any | None:
+        store = self.stores[data_type]
+        if not store:
+            return None
+        return min(store.values(), key=lambda item: getattr(item, property_name))
 
     def max_by_property(
         self,
@@ -683,7 +698,7 @@ class SqliteDataStore(DataStoreProtocol):
             capture_exception(e)
             return None
 
-    def max_by_property(
+    def min_by_property(
         self,
         data_type: DataType,
         property_name: str,
@@ -694,6 +709,40 @@ class SqliteDataStore(DataStoreProtocol):
         if column is None:
             self.logger.error(
                 "Cannot get min of property, invalid column name",
+                data_type=data_type,
+                column=property_name,
+            )
+            return None
+
+        sql = f"SELECT * FROM {table} ORDER BY {column} ASC LIMIT 1"
+
+        conn = self._get_connection()
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(sql)
+            row = cursor.fetchone()
+            return self._row_to_object(data_type, row) if row else None
+        except (sqlite3.Error, ValueError) as e:
+            self.logger.exception(
+                "Error getting min by property",
+                data_type=data_type,
+                property=property_name,
+            )
+            capture_exception(e)
+            return None
+
+    def max_by_property(
+        self,
+        data_type: DataType,
+        property_name: str,
+    ) -> Any | None:
+        table = self._get_table_name(data_type)
+        column = self._validate_column(data_type, property_name)
+
+        if column is None:
+            self.logger.error(
+                "Cannot get max of property, invalid column name",
                 data_type=data_type,
                 column=property_name,
             )
@@ -710,7 +759,7 @@ class SqliteDataStore(DataStoreProtocol):
             return self._row_to_object(data_type, row) if row else None
         except (sqlite3.Error, ValueError) as e:
             self.logger.exception(
-                "Error getting min by property",
+                "Error getting max by property",
                 data_type=data_type,
                 property=property_name,
             )

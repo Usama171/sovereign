@@ -30,8 +30,6 @@ def refresh_context(
     queue: QueueProtocol,
 ) -> bool:
     with stats.timed("v2.worker.job.refresh_context_ms", tags=[f"context:{name}"]):
-        loadable = config.template_context.context[name]
-
         logger: FilteringBoundLogger = get_named_logger(
             f"{__name__}.{refresh_context.__qualname__} ({__file__})",
             level=logging.DEBUG,
@@ -41,6 +39,12 @@ def refresh_context(
             process_id=os.getpid(),
             thread_id=threading.get_ident(),
         )
+
+        if name not in config.template_context.context:
+            logger.warning("Context not found in config, skipping refresh")
+            return False
+
+        loadable = config.template_context.context[name]
 
         logger.info("Refreshing context")
 

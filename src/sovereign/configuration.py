@@ -583,14 +583,14 @@ class SovereignConfigv2(BaseSettings):
     @classmethod
     def setup_node_id(cls, v: str | Loadable | None) -> str:
         if isinstance(v, str):
-            value = Loadable.from_legacy_fmt(v).load()
+            v = Loadable.from_legacy_fmt(v).load()
         elif isinstance(v, Loadable):
-            value = v.load()
+            v = v.load()
 
-        if not isinstance(value, str):
+        if not isinstance(v, str):
             raise ValueError("Worker node id must be a string")
 
-        return value
+        return v
 
     @property
     def passwords(self) -> list[str]:

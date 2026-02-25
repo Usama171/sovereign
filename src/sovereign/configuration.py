@@ -1,6 +1,8 @@
 import importlib
 import multiprocessing
 import os
+import random
+import time
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass
@@ -31,6 +33,11 @@ from sovereign.dynamic_config import Loadable
 from sovereign.types import XdsTemplate
 from sovereign.utils import dictupdate
 from sovereign.utils.crypto.suites import EncryptionType
+
+
+def default_worker_node_id():
+    # Best effort to acquire a stable and unique id
+    return f"{time.time()}{random.randint(0, 1000000)}"
 
 
 class CacheStrategy(str, Enum):
@@ -537,8 +544,8 @@ class SovereignConfigv2(BaseSettings):
     worker_v2_workers_per_core: float = Field(
         1.0, alias="SOVEREIGN_WORKER_V2_WORKERS_PER_CORE"
     )
-    worker_v2_node_id: Loadable | None = Field(
-        None, alias="SOVEREIGN_WORKER_V2_NODE_ID"
+    worker_v2_node_id: str = Field(
+        default_factory=default_worker_node_id, alias="SOVEREIGN_WORKER_V2_NODE_ID"
     )
 
     # Supervisord settings
@@ -574,11 +581,16 @@ class SovereignConfigv2(BaseSettings):
 
     @field_validator("worker_v2_node_id", mode="before")
     @classmethod
-    def setup_node_id(cls, v: str | Loadable | None) -> Loadable | None:
+    def setup_node_id(cls, v: str | Loadable | None) -> str:
         if isinstance(v, str):
-            return Loadable.from_legacy_fmt(v)
-        else:
-            return v
+            value = Loadable.from_legacy_fmt(v).load()
+        elif isinstance(v, Loadable):
+            value = v.load()
+
+        if not isinstance(value, str):
+            raise ValueError("Worker node id must be a string")
+
+        return value
 
     @property
     def passwords(self) -> list[str]:

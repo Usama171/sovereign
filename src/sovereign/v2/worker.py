@@ -1,6 +1,5 @@
 import logging
 import os
-import random
 import threading
 import time
 
@@ -37,19 +36,14 @@ class Worker:
     def __init__(
         self,
         data_store: DataStoreProtocol | None = None,
-        node_id: Loadable | None = config.worker_v2_node_id,
+        node_id: str = config.worker_v2_node_id,
         queue: QueueProtocol | None = None,
     ) -> None:
+        self.node_id = node_id
         self.logger: FilteringBoundLogger = get_named_logger(
             f"{self.__class__.__module__}.{self.__class__.__qualname__}",
             level=logging.INFO,
         )
-
-        if node_id is not None:
-            self.node_id = node_id.load()
-        else:
-            # Best effort to acquire a stable and unique id
-            self.node_id = f"{time.time()}{random.randint(0, 1000000)}"
 
         if data_store is not None:
             self.context_repository = ContextRepository(data_store)

@@ -512,6 +512,7 @@ class SovereignConfigv2(BaseSettings):
     worker_port: Optional[int] = Field(9080, alias="SOVEREIGN_WORKER_PORT")
 
     # Worker v2
+    # TODO: put these into their own model
 
     # only used for sqlite file path
     worker_v2_data_store_path: Optional[str] = Field(
@@ -535,6 +536,9 @@ class SovereignConfigv2(BaseSettings):
     )
     worker_v2_workers_per_core: float = Field(
         1.0, alias="SOVEREIGN_WORKER_V2_WORKERS_PER_CORE"
+    )
+    worker_v2_node_id: Loadable | None = Field(
+        None, alias="SOVEREIGN_WORKER_V2_NODE_ID"
     )
 
     # Supervisord settings
@@ -567,6 +571,14 @@ class SovereignConfigv2(BaseSettings):
         env_file_encoding="utf-8",
         populate_by_name=True,
     )
+
+    @field_validator("worker_v2_node_id", mode="before")
+    @classmethod
+    def setup_node_id(cls, v: str | Loadable | None) -> Loadable | None:
+        if isinstance(v, str):
+            return Loadable.from_legacy_fmt(v)
+        else:
+            return v
 
     @property
     def passwords(self) -> list[str]:

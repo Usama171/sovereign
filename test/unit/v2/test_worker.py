@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sovereign.dynamic_config import Loadable
 from sovereign.v2.data.data_store import InMemoryDataStore
 from sovereign.v2.data.worker_queue import InMemoryQueue
 from sovereign.v2.types import RefreshContextJob
@@ -21,7 +22,9 @@ def queue() -> InMemoryQueue:
 
 @pytest.fixture(scope="function")
 def worker(data_store: InMemoryDataStore, queue: InMemoryQueue) -> Worker:
-    return Worker(data_store, "this_node_id", queue)
+    return Worker(
+        data_store, Loadable.from_legacy_fmt("inline+none://this_node_id"), queue
+    )
 
 
 def test_heartbeat_sent_before_prune(data_store: InMemoryDataStore, worker: Worker):

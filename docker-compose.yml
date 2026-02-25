@@ -6,6 +6,7 @@ services:
       dockerfile: containers/Dockerfile
       target: production
     environment:
+      FAKE_INSTANCE_ID: hellofriend
       AWS_ACCESS_KEY_ID: access_key
       AWS_DEFAULT_REGION: ap-southeast-2
       AWS_LOCAL_URL: http://aws:3000
@@ -23,6 +24,7 @@ services:
       SOVEREIGN_HOST: '0.0.0.0'
       SOVEREIGN_PORT: '8080'
       SOVEREIGN_WORKER_V2_ENABLED: "${SOVEREIGN_WORKER_V2_ENABLED:-0}"
+      SOVEREIGN_WORKER_V2_NODE_ID: env://FAKE_INSTANCE_ID
     healthcheck:
       test: 'curl -f localhost:8080/deepcheck || exit 1'
       interval: 120s

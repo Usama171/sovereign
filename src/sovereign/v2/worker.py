@@ -37,7 +37,7 @@ class Worker:
     def __init__(
         self,
         data_store: DataStoreProtocol | None = None,
-        node_id: str | None = None,
+        node_id: Loadable | None = config.worker_v2_node_id,
         queue: QueueProtocol | None = None,
     ) -> None:
         self.logger: FilteringBoundLogger = get_named_logger(
@@ -45,11 +45,11 @@ class Worker:
             level=logging.INFO,
         )
 
-        self.node_id = (
-            node_id
-            if node_id is not None
-            else f"{time.time()}.{os.getpid()}.{random.randint(0, 1000000)}"
-        )
+        if node_id is not None:
+            self.node_id = node_id.load()
+        else:
+            # Best effort to acquire a stable and unique id
+            self.node_id = f"{time.time()}{random.randint(0, 1000000)}"
 
         if data_store is not None:
             self.context_repository = ContextRepository(data_store)

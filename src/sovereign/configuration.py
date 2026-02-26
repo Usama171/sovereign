@@ -581,8 +581,10 @@ class SovereignConfigv2(BaseSettings):
 
     @field_validator("worker_v2_node_id", mode="before")
     @classmethod
-    def setup_node_id(cls, v: str | Loadable | None) -> str:
-        if isinstance(v, str):
+    def setup_node_id(cls, v: str | dict | Loadable | None) -> str:
+        if isinstance(v, dict):
+            v = Loadable(**v).load()
+        elif isinstance(v, str):
             v = Loadable.from_legacy_fmt(v).load()
         elif isinstance(v, Loadable):
             v = v.load()

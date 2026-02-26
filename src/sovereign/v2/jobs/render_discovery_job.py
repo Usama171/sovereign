@@ -224,6 +224,7 @@ def render_discovery_response(
                     response=response,
                     last_rendered_at=int(time.time()),
                     rendering_started_at=None,  # reset after successful rendering
+                    last_requested_at=discovery_entry.last_requested_at,
                 )
             ):
                 logger.error("Failed to save discovery entry")

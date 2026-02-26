@@ -1,3 +1,4 @@
+import time
 from unittest.mock import patch
 
 import pytest
@@ -170,6 +171,7 @@ async def test_from_db_sets_immediately_in_context(
         template="clusters",
         request=request,
         response=mock_response,
+        last_requested_at=int(time.time()),
     )
     discovery_entry_repo.save(cached_entry)
 

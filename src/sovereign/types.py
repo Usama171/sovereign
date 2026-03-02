@@ -13,7 +13,7 @@ from pydantic import (
 )
 from typing_extensions import Any, cast
 
-from sovereign.dynamic_config import Loadable
+from sovereign.dynamic_config import Loadable, is_loadable
 from sovereign.utils.version_info import compute_hash
 
 missing_arguments = {"missing", "positional", "arguments:"}
@@ -243,9 +243,15 @@ class DiscoveryRequest(BaseModel):
         map = self.model_dump()
         hash = hashlib.sha256()
         for expr in sorted(rules):
-            value = cast(str, jmespath.search(expr, map))
-            val_str = f"{expr}={repr(value)}"
-            hash.update(val_str.encode())
+            if is_loadable(expr):
+                loader = Loadable.from_legacy_fmt(expr)
+                val = loader.load()
+                encoded = val.encode()
+                hash.update(encoded)
+            else:
+                value = cast(str, jmespath.search(expr, map))
+                val_str = f"{expr}={repr(value)}"
+                hash.update(val_str.encode())
         return hash.hexdigest()
 
     @computed_field  # type: ignore[misc]

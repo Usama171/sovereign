@@ -391,3 +391,16 @@ class TestCacheIntegration:
 
         assert local.get("key").version == "v2"
         assert remote.get("key").version == "v2"
+
+
+def test_discovery_request_cache_key_uses_env_loadable(monkeypatch):
+    rules = ["env://SOVEREIGN_ENVIRONMENT_TYPE"]
+    req = mock_discovery_request(api_version="V3", resource_type="listeners")
+
+    monkeypatch.setenv("SOVEREIGN_ENVIRONMENT_TYPE", "dev")
+    key_dev = req.cache_key(rules)
+
+    monkeypatch.setenv("SOVEREIGN_ENVIRONMENT_TYPE", "prod")
+    key_prod = req.cache_key(rules)
+
+    assert key_dev != key_prod

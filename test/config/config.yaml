@@ -74,6 +74,17 @@ authentication:
 cache:
   read_timeout: 20
   local_fs_path: /var/run/sovereign_cache
+  hash_rules:
+    - template.version
+    - is_internal_request
+    - desired_controlplane
+    - resource_type
+    - api_version
+    - envoy_version
+    - resource_names
+    - node.cluster
+    - node.locality
+    - env://SOVEREIGN_ENVIRONMENT_TYPE
   extra_hash_rules:
     clusters:
       - node.metadata.ipv4

@@ -1,4 +1,5 @@
 import inspect
+import re
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -9,6 +10,12 @@ from sovereign.utils.entry_point_loader import EntryPointLoader
 
 LOADERS: dict[str, CustomLoader] = {}
 DESERIALIZERS: dict[str, ConfigDeserializer] = {}
+
+LOADABLE_FORMAT = re.compile(r"([^+]+)(\+[^:]+)?://(.*)")
+
+
+def is_loadable(s: str):
+    return LOADABLE_FORMAT.match(s)
 
 
 class Loadable(BaseModel):

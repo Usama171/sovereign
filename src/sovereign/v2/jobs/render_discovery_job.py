@@ -158,6 +158,7 @@ def render_discovery_response(
             logger.info(
                 "Skipping duplicate rendering job - another job is already rendering this request",
                 rendering_started_at=discovery_entry.rendering_started_at,
+                last_rendered_at=last_rendered_at,
             )
             stats.increment(
                 "v2.worker.job.render_discovery_response.skipped",
@@ -214,6 +215,9 @@ def render_discovery_response(
                 request, request_hash, node_id, context_repository
             )
             if response is None:
+                logger.debug(
+                    "render_template_to_response returned None, could not render template"
+                )
                 return False
 
             if not discovery_entry_repository.save(

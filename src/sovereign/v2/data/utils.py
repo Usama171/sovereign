@@ -10,6 +10,7 @@ _context_repository_web: ContextRepository | None = None
 _context_repository_worker: ContextRepository | None = None
 
 
+# noinspection PyUnboundLocalVariable
 def _create_new_data_store() -> DataStoreProtocol:
     entry_points = EntryPointLoader("data_stores")
 

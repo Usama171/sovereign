@@ -91,8 +91,10 @@ async def deep_check(
                 template,
                 expressions=[f"cluster={envoy_service_cluster}"],
             )
+            # rendering inline here so that we are checking the CP node itself and not just the worker's ability to
+            # process jobs
             response = await wait_for_discovery_response(
-                discovery_request, get_context_repository_web()
+                discovery_request, get_context_repository_web(), render_inline=True
             )
             if response:
                 return template, "OK"

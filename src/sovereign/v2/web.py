@@ -16,7 +16,9 @@ from sovereign.v2.types import DiscoveryEntry, RenderDiscoveryJob
 
 
 async def wait_for_discovery_response(
-    request: DiscoveryRequest, context_repository: ContextRepository
+    request: DiscoveryRequest,
+    context_repository: ContextRepository,
+    render_inline: bool = False,
 ) -> DiscoveryResponse | None:
     # 1 - if render_inline is set, render inline without persisting
     # 2 - check if the entry already exists in the database with a non-empty response
@@ -42,7 +44,7 @@ async def wait_for_discovery_response(
 
     # render_inline: render inline without persisting to avoid unbounded growth
     sovereign_metadata = request.node.metadata.get("sovereign", {})
-    if sovereign_metadata.get("render_inline"):
+    if render_inline or sovereign_metadata.get("render_inline"):
         logger.info("Inline render requested")
         try:
             response = await asyncio.to_thread(

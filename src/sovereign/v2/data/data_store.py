@@ -41,6 +41,7 @@ class DataStoreProtocol(Protocol):
         comparison_operator: ComparisonOperator,
         property_value: Any,
     ) -> int: ...
+
     def delete_matching(
         self,
         data_type: DataType,
@@ -48,6 +49,7 @@ class DataStoreProtocol(Protocol):
         comparison_operator: ComparisonOperator,
         property_value: Any,
     ) -> bool: ...
+
     def find_all_matching(
         self,
         data_type: DataType,
@@ -55,6 +57,7 @@ class DataStoreProtocol(Protocol):
         comparison_operator: ComparisonOperator,
         property_value: Any,
     ) -> list[Any]: ...
+
     def find_all_matching_property(
         self,
         data_type: DataType,
@@ -71,20 +74,25 @@ class DataStoreProtocol(Protocol):
         ...
 
     def get(self, data_type: DataType, key: str) -> Any | None: ...
+
     def get_property(
         self, data_type: DataType, key: str, property_name: str
     ) -> Any | None: ...
+
     def min_by_property(
         self,
         data_type: DataType,
         property_name: str,
     ) -> Any | None: ...
+
     def max_by_property(
         self,
         data_type: DataType,
         property_name: str,
     ) -> Any | None: ...
+
     def set(self, data_type: DataType, key: str, value: Any) -> bool: ...
+
     def set_and_get_property_if_null_or_matching(
         self,
         data_type: DataType,
@@ -111,7 +119,20 @@ class DataStoreProtocol(Protocol):
 
     def set_property(
         self, data_type: DataType, key: str, property_name: str, property_value: Any
-    ) -> bool: ...
+    ) -> bool:
+        """
+        Sets a property on the item, and if the item doesn't exist, it creates a new item with only that property set
+        (other properties will be None)
+        """
+        ...
+
+    def set_property_if_exists(
+        self, data_type: DataType, key: str, property_name: str, property_value: Any
+    ) -> bool:
+        """
+        Sets a property on the item only if it exists
+        """
+        ...
 
 
 class InMemoryDataStore(DataStoreProtocol):
@@ -251,6 +272,15 @@ class InMemoryDataStore(DataStoreProtocol):
         return True
 
     def set_property(
+        self, data_type: DataType, key: str, property_name: str, property_value: Any
+    ) -> bool:
+        item = self.get(data_type, key)
+        if item is None:
+            return False
+        setattr(item, property_name, property_value)
+        return True
+
+    def set_property_if_exists(
         self, data_type: DataType, key: str, property_name: str, property_value: Any
     ) -> bool:
         item = self.get(data_type, key)
@@ -886,6 +916,47 @@ class SqliteDataStore(DataStoreProtocol):
             cursor.execute(sql, (key, property_value))
             conn.commit()
             return True
+        except (sqlite3.Error, ValueError) as e:
+            self.logger.exception(
+                "Error setting property",
+                data_type=data_type,
+                key=key,
+                property=property_name,
+                value=property_value,
+            )
+            capture_exception(e)
+            return False
+
+    def set_property_if_exists(
+        self, data_type: DataType, key: str, property_name: str, property_value: Any
+    ) -> bool:
+        table = self._get_table_name(data_type)
+        primary_key_column = self._get_primary_key(data_type)
+        property_column = self._validate_column(data_type, property_name)
+
+        if property_column is None:
+            self.logger.error(
+                "Cannot set property, invalid column name",
+                data_type=data_type,
+                column=property_name,
+            )
+            return False
+
+        sql = f"""
+            UPDATE {table}
+            SET {property_column} = ?
+            WHERE {primary_key_column} = ?
+            RETURNING {primary_key_column}
+        """
+
+        conn = self._get_connection()
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(sql, (property_value, key))
+            row = cursor.fetchone()
+            conn.commit()
+            return row is not None
         except (sqlite3.Error, ValueError) as e:
             self.logger.exception(
                 "Error setting property",

@@ -88,7 +88,7 @@ class DiscoveryEntryRepository:
 
     @stats.timed("v2.repository.discovery_entry.clear_rendering_started_at_ms")
     def clear_rendering_started_at(self, request_hash: str) -> bool:
-        return self.data_store.set_property(
+        return self.data_store.set_property_if_exists(
             DataType.DiscoveryEntry, request_hash, "rendering_started_at", None
         )
 
@@ -112,7 +112,7 @@ class DiscoveryEntryRepository:
 
     @stats.timed("v2.repository.discovery_entry.update_last_requested_at_ms")
     def update_last_requested_at(self, request_hash: str) -> bool:
-        return self.data_store.set_property(
+        return self.data_store.set_property_if_exists(
             DataType.DiscoveryEntry, request_hash, "last_requested_at", int(time.time())
         )
 

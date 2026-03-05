@@ -17,6 +17,7 @@ from sovereign.v2.logging import get_named_logger
 from sovereign.v2.types import DiscoveryEntry, RenderDiscoveryJob
 
 _inline_render_pool: ProcessPoolExecutor | None = None
+_inline_render_pool_lock = threading.Lock()
 
 
 def _get_inline_render_pool() -> ProcessPoolExecutor:
@@ -31,14 +32,16 @@ def _get_inline_render_pool() -> ProcessPoolExecutor:
     """
     global _inline_render_pool
     if _inline_render_pool is None:
-        from sovereign.server import get_available_cpus
+        with _inline_render_pool_lock:
+            if _inline_render_pool is None:
+                from sovereign.server import get_available_cpus
 
-        max_workers = min(get_available_cpus(), 7)
-        _inline_render_pool = ProcessPoolExecutor(
-            max_workers=max_workers,
-            mp_context=multiprocessing.get_context("fork"),
-            initializer=_reset_inherited_connections,
-        )
+                max_workers = min(get_available_cpus(), 7)
+                _inline_render_pool = ProcessPoolExecutor(
+                    max_workers=max_workers,
+                    mp_context=multiprocessing.get_context("fork"),
+                    initializer=_reset_inherited_connections,
+                )
     return _inline_render_pool
 
 
@@ -101,10 +104,9 @@ async def wait_for_discovery_response(
     sovereign_metadata = request.node.metadata.get("sovereign", {})
     if render_inline or sovereign_metadata.get("render_inline"):
         logger.info("Inline render requested")
-        loop = asyncio.get_event_loop()
         pool = _get_inline_render_pool()
         try:
-            response = await loop.run_in_executor(
+            response = await asyncio.get_running_loop().run_in_executor(
                 pool,
                 _render_inline_in_subprocess,
                 request,

@@ -80,6 +80,13 @@ async def discovery_response(
 
     if config.worker_v2_enabled:
         # we're set up to use v2 of the worker
+        request_hash = xds_req.cache_key(
+            config.cache.effective_hash_rules(xds_req.resource_type)
+        )
+        logs.access_logger.queue_log_fields(
+            request_hash=request_hash, template=xds_req.resource_type
+        )
+
         response = await wait_for_discovery_response(
             xds_req, get_context_repository_web()
         )

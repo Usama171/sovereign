@@ -42,6 +42,7 @@ def _get_inline_render_pool() -> ProcessPoolExecutor:
                     mp_context=multiprocessing.get_context("fork"),
                     initializer=_reset_inherited_connections,
                 )
+    assert _inline_render_pool is not None
     return _inline_render_pool
 
 

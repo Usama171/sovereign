@@ -1,4 +1,5 @@
 import time
+from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 
 import pytest
@@ -54,13 +55,17 @@ async def test_render_inline_renders_inline(
         patch("sovereign.v2.web.get_data_store_web", return_value=data_store),
         patch("sovereign.v2.web.get_queue", return_value=queue),
         patch(
-            "sovereign.v2.web.render_template_to_response",
+            "sovereign.v2.web._get_inline_render_pool",
+            return_value=ThreadPoolExecutor(1),
+        ),
+        patch(
+            "sovereign.v2.web._render_inline_in_subprocess",
             return_value=mock_response,
         ) as mock_render,
     ):
         result = await wait_for_discovery_response(request, context_repository)
 
-    # render_template_to_response should have been called
+    # _render_inline_in_subprocess should have been called
     mock_render.assert_called_once()
 
     # should return the rendered response

@@ -1,6 +1,19 @@
 Changelog
 =========
 
+1.0.0b201 (2026-03-05)
+----------------------
+
+### Performance
+
+* **inline renders**: Use `ProcessPoolExecutor` instead of `asyncio.to_thread` for
+  inline template renders. Each subprocess has its own GIL, enabling true CPU
+  parallelism. Previously, templates dispatched via `asyncio.to_thread` were
+  serialised by the GIL, causing deepchecks to take too long.
+  With separate processes, templates render in true parallel. Worker count is
+  based on available CPUs (container-aware), capped at 7 (one per template).
+  Forked subprocesses reset inherited DB connections and create their own.
+
 1.0.0b186 (2026-02-15)
 ----------------------
 

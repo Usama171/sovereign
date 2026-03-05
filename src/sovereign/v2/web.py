@@ -1,8 +1,10 @@
 import asyncio
 import logging
+import multiprocessing
 import os
 import threading
 import time
+from concurrent.futures import ProcessPoolExecutor
 
 from structlog.typing import FilteringBoundLogger
 
@@ -13,6 +15,59 @@ from sovereign.v2.data.utils import get_data_store_web, get_queue
 from sovereign.v2.jobs.render_discovery_job import render_template_to_response
 from sovereign.v2.logging import get_named_logger
 from sovereign.v2.types import DiscoveryEntry, RenderDiscoveryJob
+
+_inline_render_pool: ProcessPoolExecutor | None = None
+
+
+def _get_inline_render_pool() -> ProcessPoolExecutor:
+    """Lazily create a ProcessPoolExecutor for inline renders.
+
+    Uses fork so child processes inherit loaded modules (fast startup),
+    with an initializer that resets DB connections so each child creates
+    its own (safe after fork).
+
+    Worker count is based on available CPUs (container-aware), capped at 7
+    since there are only 7 templates to render in parallel.
+    """
+    global _inline_render_pool
+    if _inline_render_pool is None:
+        from sovereign.server import get_available_cpus
+
+        max_workers = min(get_available_cpus(), 7)
+        _inline_render_pool = ProcessPoolExecutor(
+            max_workers=max_workers,
+            mp_context=multiprocessing.get_context("fork"),
+            initializer=_reset_inherited_connections,
+        )
+    return _inline_render_pool
+
+
+def _reset_inherited_connections():
+    """Called once per forked worker process. Resets DB state inherited from
+    the parent so each subprocess creates its own connections."""
+    from sovereign.v2.data import utils
+
+    utils._data_store_web = None
+    utils._context_repository_web = None
+
+
+def _render_inline_in_subprocess(
+    request: DiscoveryRequest,
+    request_hash: str,
+    node_id: str,
+) -> DiscoveryResponse | None:
+    """Runs in a subprocess via ProcessPoolExecutor.
+
+    Each subprocess has its own GIL, so multiple calls run with true
+    CPU parallelism. Creates its own ContextRepository (and therefore
+    its own DB connection) on first use.
+    """
+    from sovereign.v2.data.utils import get_context_repository_web
+
+    context_repository = get_context_repository_web()
+    return render_template_to_response(
+        request, request_hash, node_id, context_repository
+    )
 
 
 async def wait_for_discovery_response(
@@ -46,13 +101,15 @@ async def wait_for_discovery_response(
     sovereign_metadata = request.node.metadata.get("sovereign", {})
     if render_inline or sovereign_metadata.get("render_inline"):
         logger.info("Inline render requested")
+        loop = asyncio.get_event_loop()
+        pool = _get_inline_render_pool()
         try:
-            response = await asyncio.to_thread(
-                render_template_to_response,
+            response = await loop.run_in_executor(
+                pool,
+                _render_inline_in_subprocess,
                 request,
                 request_hash,
                 "inline",
-                context_repository,
             )
         except Exception:
             logs.access_logger.queue_log_fields(XDS_RESPONSE_SOURCE="inline")

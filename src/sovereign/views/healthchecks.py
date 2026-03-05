@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import pydantic
 import requests
@@ -12,6 +13,7 @@ from sovereign.configuration import XDS_TEMPLATES, config
 from sovereign.response_class import json_response_class
 from sovereign.utils.mock import mock_discovery_request
 from sovereign.v2.data.utils import get_context_repository_web
+from sovereign.v2.logging import get_named_logger
 from sovereign.v2.web import wait_for_discovery_response
 from sovereign.views import reader
 
@@ -84,7 +86,23 @@ async def deep_check(
     templates = list(XDS_TEMPLATES["default"].keys())
 
     if config.worker_v2_enabled:
-        # Run all template checks in parallel to avoid the deep check taking too long
+        pending_templates = list(templates)
+        # add this lock so we can edit the pending_templates list in an async-safe manner
+        pending_lock = asyncio.Lock()
+        logger = get_named_logger(
+            f"{__name__}.{deep_check.__qualname__} ({__file__})",
+            level=logging.INFO,
+        )
+
+        async def mark_template_complete(template: str) -> None:
+            async with pending_lock:
+                if template in pending_templates:
+                    pending_templates.remove(template)
+                logger.info(
+                    f"Template {template} completed, still waiting on {pending_templates}"
+                )
+
+        # run all template checks in parallel to avoid the deep check taking too long
         async def check_template(template: str) -> tuple[str, CheckResult]:
             discovery_request = mock_discovery_request(
                 "v3",
@@ -96,6 +114,7 @@ async def deep_check(
             response = await wait_for_discovery_response(
                 discovery_request, get_context_repository_web(), render_inline=True
             )
+            await mark_template_complete(template)
             if response:
                 return template, "OK"
             else:

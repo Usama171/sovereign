@@ -88,4 +88,5 @@ def get_queue() -> QueueProtocol:
                 f"Queue '{config.worker_v2_queue_provider}' not found in entry points"
             )
 
+    assert _queue is not None
     return _queue

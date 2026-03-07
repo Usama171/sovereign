@@ -48,12 +48,11 @@ def _get_inline_render_pool() -> ProcessPoolExecutor:
 
 
 def _shutdown_inline_render_pool():
-    """Shut down the inline render pool and release forked worker processes."""
+    """Shut down the pool. Caller must hold _inline_render_pool_lock."""
     global _inline_render_pool
-    with _inline_render_pool_lock:
-        if _inline_render_pool is not None:
-            _inline_render_pool.shutdown(wait=False)
-            _inline_render_pool = None
+    if _inline_render_pool is not None:
+        _inline_render_pool.shutdown(wait=False)
+        _inline_render_pool = None
 
 
 def _reset_inherited_connections():
@@ -117,7 +116,8 @@ async def wait_for_discovery_response(
         global _inline_render_count
         logger.info("Inline render requested")
         pool = _get_inline_render_pool()
-        _inline_render_count += 1
+        with _inline_render_pool_lock:
+            _inline_render_count += 1
         try:
             response = await asyncio.get_running_loop().run_in_executor(
                 pool,
@@ -130,9 +130,10 @@ async def wait_for_discovery_response(
             logs.access_logger.queue_log_fields(XDS_RESPONSE_SOURCE="inline")
             raise
         finally:
-            _inline_render_count -= 1
-            if _inline_render_count == 0:
-                _shutdown_inline_render_pool()
+            with _inline_render_pool_lock:
+                _inline_render_count -= 1
+                if _inline_render_count == 0:
+                    _shutdown_inline_render_pool()
         stats.increment(
             "v2.worker.discovery_response",
             tags=[

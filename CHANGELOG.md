@@ -1,6 +1,14 @@
 Changelog
 =========
 
+1.0.0b203 (2026-03-07)
+----------------------
+
+### Performance
+
+* - Cache the queue instance in get_queue() like other singletons to avoid creating a new SqsQueue/boto3 client per web request
+  - Add reference-counted ProcessPoolExecutor lifecycle — pool created on demand and shut down when no inline renders are active
+
 1.0.0b202 (2026-03-05)
 ----------------------
 

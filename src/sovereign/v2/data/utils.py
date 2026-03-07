@@ -8,6 +8,7 @@ _data_store_web: DataStoreProtocol | None = None
 _data_store_worker: DataStoreProtocol | None = None
 _context_repository_web: ContextRepository | None = None
 _context_repository_worker: ContextRepository | None = None
+_queue: QueueProtocol | None = None
 
 
 # noinspection PyUnboundLocalVariable
@@ -72,12 +73,19 @@ def get_context_repository_worker() -> ContextRepository:
 
 
 def get_queue() -> QueueProtocol:
-    entry_points = EntryPointLoader("queues")
+    global _queue
 
-    for entry_point in entry_points.groups["queues"]:
-        if entry_point.name == config.worker_v2_queue_provider:
-            return entry_point.load()()
+    if not _queue:
+        entry_points = EntryPointLoader("queues")
 
-    raise ValueError(
-        f"Queue '{config.worker_v2_queue_provider}' not found in entry points"
-    )
+        for entry_point in entry_points.groups["queues"]:
+            if entry_point.name == config.worker_v2_queue_provider:
+                _queue = entry_point.load()()
+                break
+
+        if not _queue:
+            raise ValueError(
+                f"Queue '{config.worker_v2_queue_provider}' not found in entry points"
+            )
+
+    return _queue

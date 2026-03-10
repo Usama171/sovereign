@@ -137,18 +137,17 @@ class DiscoveryEntryRepository:
         Returns:
             A tuple of (acquired, timestamp) where:
             - acquired: True if this caller successfully claimed the rendering slot.
-            - timestamp: The rendering_started_at value (either the newly set time if acquired,
-              or the existing time if another worker is already rendering).
+            - timestamp: The rendering_started_at value:
+              * If acquired=True: the newly set timestamp (now)
+              * If acquired=False and timestamp is None: the entry doesn't exist
+              * If acquired=False and timestamp is not None: another worker holds the lock
         """
-        (updated, value) = self.data_store.set_and_get_property_if_null_or_matching(
+        return self.data_store.try_acquire_rendering_lock(
             DataType.DiscoveryEntry,
             request_hash,
-            "rendering_started_at",
             now,
-            ComparisonOperator.LessThanOrEqualTo,
-            now - rendering_timeout_seconds,
+            rendering_timeout_seconds,
         )
-        return updated, int(value) if value else None
 
     @stats.timed("v2.repository.discovery_entry.find_by_template_ms")
     def find_all_request_hashes_by_template(self, template: str) -> list[str]:
@@ -198,7 +197,7 @@ class WorkerNodeRepository:
 
     @stats.timed("v2.repository.worker_node.get_leader_ms")
     def get_leader_node_id(self) -> str | None:
-        node: WorkerNode | None = self.data_store.min_by_property(
+        node: WorkerNode | None = self.data_store.max_by_property(
             DataType.WorkerNode, "node_id"
         )
         if node:

@@ -129,6 +129,18 @@ def render_discovery_response(
         thread_id=threading.get_ident(),
     )
 
+    def clear_rendering_started_at_best_effort() -> None:
+        """
+        Use this method so we don't swallow any exception from the `clear_rendering_started_at()` method call.
+        """
+        try:
+            discovery_entry_repository.clear_rendering_started_at(request_hash)
+        except Exception as clear_error:
+            logger.warning(
+                "Failed to clear rendering_started_at after render failure",
+                clear_error=clear_error,
+            )
+
     try:
         logger.debug("Starting rendering of discovery response")
 
@@ -232,11 +244,15 @@ def render_discovery_response(
                 )
             ):
                 logger.error("Failed to save discovery entry")
+                # Clear the lock since save failed (best-effort)
+                clear_rendering_started_at_best_effort()
                 return False
 
+            # Successfully saved - lock already cleared in the save above
             return True
-        finally:
-            # clear rendering_started_at no matter how we exit
-            discovery_entry_repository.clear_rendering_started_at(request_hash)
+        except Exception:
+            # Only clear the lock on exception - success case clears it in save()
+            clear_rendering_started_at_best_effort()
+            raise
     finally:
         logger.debug("Finished rendering of discovery response")

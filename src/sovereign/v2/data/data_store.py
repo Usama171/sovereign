@@ -1,6 +1,7 @@
 import logging
 import pickle
 import sqlite3
+import threading
 from enum import StrEnum
 from typing import Any, Protocol
 
@@ -117,6 +118,30 @@ class DataStoreProtocol(Protocol):
         """
         ...
 
+    def try_acquire_rendering_lock(
+        self,
+        data_type: DataType,
+        key: str,
+        now: int,
+        timeout_seconds: int,
+    ) -> tuple[bool, int | None]:
+        """
+        Simple distributed lock implementation.
+
+        In a transaction:
+        1. Lock the row (SELECT FOR UPDATE or equivalent)
+        2. Read current rendering_started_at
+        3. If None or expired (older than timeout), set to now and return (True, now)
+        4. Otherwise return (False, current_value)
+
+        Returns:
+            (acquired, timestamp) where:
+            - If acquired=True: (True, now) - lock acquired
+            - If acquired=False and timestamp=None: (False, None) - entry doesn't exist
+            - If acquired=False and timestamp!=None: (False, timestamp) - another worker has lock
+        """
+        ...
+
     def set_property(
         self, data_type: DataType, key: str, property_name: str, property_value: Any
     ) -> bool:
@@ -147,6 +172,7 @@ class InMemoryDataStore(DataStoreProtocol):
             DataType.DiscoveryEntry: dict[str, DiscoveryEntry](),
             DataType.WorkerNode: dict[str, WorkerNode](),
         }
+        self._lock = threading.Lock()
 
     def set_purpose(self, purpose: DataStorePurpose) -> None: ...
 
@@ -308,6 +334,29 @@ class InMemoryDataStore(DataStoreProtocol):
             setattr(item, property_name, new_property_value)
             return True, new_property_value
         return False, current_value
+
+    def try_acquire_rendering_lock(
+        self,
+        data_type: DataType,
+        key: str,
+        now: int,
+        timeout_seconds: int,
+    ) -> tuple[bool, int | None]:
+        """Simple lock for in-memory - just check and set."""
+        with self._lock:
+            item = self.get(data_type, key)
+            if item is None:
+                return False, None
+
+            current_value = getattr(item, "rendering_started_at")
+            cutoff = now - timeout_seconds
+
+            # Can acquire if: None or timed out
+            if current_value is None or current_value <= cutoff:
+                setattr(item, "rendering_started_at", now)
+                return True, now
+
+            return False, current_value
 
 
 # noinspection DuplicatedCode
@@ -886,6 +935,76 @@ class SqliteDataStore(DataStoreProtocol):
                 value=new_property_value,
             )
             capture_exception(e)
+            return False, None
+
+    def try_acquire_rendering_lock(
+        self,
+        data_type: DataType,
+        key: str,
+        now: int,
+        timeout_seconds: int,
+    ) -> tuple[bool, int | None]:
+        """
+        Simple distributed lock using transaction and row-level locking.
+
+        1. Start transaction
+        2. SELECT rendering_started_at with row lock
+        3. Check if None or timed out
+        4. If yes, UPDATE to now and commit, return (True, now)
+        5. If no, rollback and return (False, current_value)
+        """
+        table = self._get_table_name(data_type)
+        primary_key_column = self._get_primary_key(data_type)
+
+        conn = self._get_connection()
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute("BEGIN IMMEDIATE")
+
+            # Lock the row and read current value
+            # SQLite doesn't have SELECT FOR UPDATE, but IMMEDIATE isolation gives us write lock
+            select_sql = f"""
+                SELECT rendering_started_at 
+                FROM {table} 
+                WHERE {primary_key_column} = ?
+            """
+            cursor.execute(select_sql, (key,))
+            row = cursor.fetchone()
+
+            if row is None:
+                # Entry doesn't exist
+                conn.rollback()
+                return False, None
+
+            current_value = row[0]
+            cutoff = now - timeout_seconds
+
+            # Can acquire lock if rendering_started_at is None or older than cutoff
+            if current_value is None or current_value <= cutoff:
+                # Acquire the lock by updating to now
+                update_sql = f"""
+                    UPDATE {table}
+                    SET rendering_started_at = ?
+                    WHERE {primary_key_column} = ?
+                """
+                cursor.execute(update_sql, (now, key))
+                conn.commit()
+                return True, now
+            else:
+                # Another worker has the lock
+                conn.rollback()
+                return False, current_value
+
+        except (sqlite3.Error, ValueError) as e:
+            self.logger.exception(
+                "Error acquiring rendering lock",
+                data_type=data_type,
+                key=key,
+                now=now,
+            )
+            capture_exception(e)
+            conn.rollback()
             return False, None
 
     def set_property(

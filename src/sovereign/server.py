@@ -50,8 +50,10 @@ def get_available_cpus() -> int:
     try:
         # Use sched_getaffinity if available (Linux)
         # This respects CPU affinity masks set by Docker --cpuset-cpus
-        return len(os.sched_getaffinity(0))
-    except (AttributeError, OSError):
+        affinity = getattr(os, "sched_getaffinity", None)
+        if affinity is not None:
+            return len(affinity(0))
+    except OSError:
         pass
 
     # Fall back to multiprocessing.cpu_count()

@@ -230,6 +230,8 @@ def render_discovery_response(
                 logger.debug(
                     "render_template_to_response returned None, could not render template"
                 )
+                # Clear the lock so other jobs can try rendering
+                clear_rendering_started_at_best_effort()
                 return False
 
             if not discovery_entry_repository.save(

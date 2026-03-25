@@ -1,6 +1,43 @@
 Changelog
 =========
 
+1.0.0b206 (2026-03-25)
+----------------------
+
+* fix[vuln]: Update cryptography from 46.0.3 to 46.0.5
+* fix[vuln]: Update urllib3 from 2.6.2 to 2.6.3
+* chore[deps]: Update anyio from 4.12.0 to 4.13.0
+* chore[deps]: Update attrs from 25.4.0 to 26.1.0
+* chore[deps]: Update boto3 from 1.42.19 to 1.42.75
+* chore[deps]: Update botocore from 1.42.19 to 1.42.75
+* chore[deps]: Update certifi from 2025.11.12 to 2026.2.25
+* chore[deps]: Update charset-normalizer from 3.4.4 to 3.4.6
+* chore[deps]: Update fastapi from 0.128.0 to 0.128.8
+* chore[deps]: Update jmespath from 1.0.1 to 1.1.0
+* chore[deps]: Update jsonschema from 4.25.1 to 4.26.0
+* chore[deps]: Update moto from 5.1.19 to 5.1.22
+* chore[deps]: Update orjson from 3.11.5 to 3.11.7
+* chore[deps]: Update packaging from 25.0 to 26.0
+* chore[deps]: Update pycparser from 2.23 to 3.0
+* chore[deps]: Update pyjwt from 2.10.1 to 2.12.1
+* chore[deps]: Update python-dotenv from 1.2.1 to 1.2.2
+* chore[deps]: Update responses from 0.25.8 to 0.26.0
+* chore[deps]: Update rich from 14.2.0 to 14.3.3
+* chore[deps]: Update ruamel-yaml from 0.18.17 to 0.19.1
+* chore[deps]: Update ruff from 0.14.10 to 0.15.7
+* chore[deps]: Update sentry-sdk from 2.48.0 to 2.56.0
+* chore[deps]: Update setuptools from 80.9.0 to 82.0.1
+* chore[deps]: Update simpleeval from 1.0.3 to 1.0.7
+* chore[deps]: Update tavern from 3.0.2 to 3.2.0
+* chore[deps]: Update types-cachetools from 6.2.0.20251022 to 6.2.0.20260317
+* chore[deps]: Update types-croniter from 6.0.0.20250809 to 6.2.2.20260316
+* chore[deps]: Update types-requests from 2.32.4.20250913 to 2.32.4.20260324
+* chore[deps]: Update types-setuptools from 80.9.0.20251223 to 82.0.0.20260210
+* chore[deps]: Update ujson from 5.11.0 to 5.12.0
+* chore[deps]: Update werkzeug from 3.1.4 to 3.1.7
+* chore[deps]: Update xmltodict from 1.0.2 to 1.0.4
+* chore[deps]: Removed ruamel-yaml-clib (no longer needed)
+
 1.0.0b203 (2026-03-07)
 ----------------------
 

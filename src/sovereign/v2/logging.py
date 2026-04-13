@@ -10,8 +10,6 @@ from pydantic import BaseModel
 from structlog.dev import RichTracebackFormatter
 from structlog.typing import FilteringBoundLogger
 
-from sovereign.configuration import config
-
 
 def capture_exception(exc: BaseException) -> None:
     """
@@ -19,7 +17,14 @@ def capture_exception(exc: BaseException) -> None:
 
     This should be used in except blocks where we catch and handle exceptions
     but still want to report them to Sentry for monitoring.
+
+    sovereign.configuration is imported lazily to avoid a circular import:
+    this module is safe to import from anywhere (including loaders loaded
+    during configuration initialisation), whereas sovereign.configuration
+    is not fully initialised at that point.
     """
+    from sovereign.configuration import config
+
     if config.sentry_dsn.get_secret_value():
         try:
             mod = importlib.import_module("sentry_sdk")

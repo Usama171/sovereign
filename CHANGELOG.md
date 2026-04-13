@@ -1,6 +1,11 @@
 Changelog
 =========
 
+1.0.0b207 (2026-04-13)
+----------------------
+
+* fix(logging): lazily import `sovereign.configuration` inside `capture_exception` to avoid circular import when this module is loaded during configuration initialisation
+
 1.0.0b206 (2026-03-25)
 ----------------------
 

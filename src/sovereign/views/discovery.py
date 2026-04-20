@@ -10,13 +10,15 @@ from sovereign.types import (
     DiscoveryResponse,
 )
 from sovereign.utils.auth import authenticate
-from sovereign.v2.data.utils import get_context_repository_web
 from sovereign.v2.web import wait_for_discovery_response
 from sovereign.views import reader
 
 
 def response_headers(
-    discovery_request: DiscoveryRequest, response: Entry, xds: str
+    discovery_request: DiscoveryRequest,
+    response: Entry,
+    xds: str,
+    request_hash: str,
 ) -> dict[str, str]:
     headers = {
         "X-Sovereign-Client-Build": discovery_request.envoy_version,
@@ -29,6 +31,8 @@ def response_headers(
     response_source = context.data.get("XDS_RESPONSE_SOURCE", "")
     if response_source:
         headers["X-Sovereign-Response-Source"] = response_source
+    if request_hash:
+        headers["X-Sovereign-Request-Hash"] = request_hash
     return headers
 
 
@@ -67,11 +71,16 @@ async def discovery_response(
         XDS_CLIENT_VERSION=xds_req.version_info,
     )
 
+    # Calculate request hash for response header
+    request_hash = xds_req.cache_key(
+        config.cache.effective_hash_rules(xds_req.resource_type)
+    )
+
     def handle_response(entry: cache.Entry):
         logs.access_logger.queue_log_fields(
             XDS_SERVER_VERSION=entry.version,
         )
-        headers = response_headers(xds_req, entry, xds_type)
+        headers = response_headers(xds_req, entry, xds_type, request_hash)
         if entry.len == 0:
             return Response(status_code=404, headers=headers)
         if entry.version == xds_req.version_info:
@@ -80,16 +89,11 @@ async def discovery_response(
 
     if config.worker_v2_enabled:
         # we're set up to use v2 of the worker
-        request_hash = xds_req.cache_key(
-            config.cache.effective_hash_rules(xds_req.resource_type)
-        )
         logs.access_logger.queue_log_fields(
             request_hash=request_hash, template=xds_req.resource_type
         )
 
-        response = await wait_for_discovery_response(
-            xds_req, get_context_repository_web()
-        )
+        response = await wait_for_discovery_response(xds_req)
         if response is not None:
             entry = Entry(
                 text=response.model_dump_json(indent=None),

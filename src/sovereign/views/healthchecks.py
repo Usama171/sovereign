@@ -12,7 +12,6 @@ from sovereign import __version__
 from sovereign.configuration import XDS_TEMPLATES, config
 from sovereign.response_class import json_response_class
 from sovereign.utils.mock import mock_discovery_request
-from sovereign.v2.data.utils import get_context_repository_web
 from sovereign.v2.logging import get_named_logger
 from sovereign.v2.web import wait_for_discovery_response
 from sovereign.views import reader
@@ -112,7 +111,7 @@ async def deep_check(
             # rendering inline here so that we are checking the CP node itself and not just the worker's ability to
             # process jobs
             response = await wait_for_discovery_response(
-                discovery_request, get_context_repository_web(), render_inline=True
+                discovery_request, render_inline=True
             )
             await mark_template_complete(template)
             if response:

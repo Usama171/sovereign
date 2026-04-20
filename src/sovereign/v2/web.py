@@ -10,7 +10,7 @@ from structlog.typing import FilteringBoundLogger
 
 from sovereign import config, logs, stats
 from sovereign.types import DiscoveryRequest, DiscoveryResponse
-from sovereign.v2.data.repositories import ContextRepository, DiscoveryEntryRepository
+from sovereign.v2.data.repositories import DiscoveryEntryRepository
 from sovereign.v2.data.utils import get_data_store_web, get_queue
 from sovereign.v2.jobs.render_discovery_job import render_template_to_response
 from sovereign.v2.logging import get_named_logger
@@ -25,7 +25,7 @@ def _get_inline_render_pool() -> ProcessPoolExecutor:
     """Lazily create a ProcessPoolExecutor for inline renders.
 
     Uses fork so child processes inherit loaded modules (fast startup),
-    with an initializer that resets DB connections so each child creates
+    with an initialiser that resets DB connections so each child creates
     its own (safe after fork).
 
     Worker count is based on available CPUs (container-aware), capped at 7
@@ -85,7 +85,6 @@ def _render_inline_in_subprocess(
 
 async def wait_for_discovery_response(
     request: DiscoveryRequest,
-    context_repository: ContextRepository,
     render_inline: bool = False,
 ) -> DiscoveryResponse | None:
     # 1 - if render_inline is set, render inline without persisting
@@ -172,6 +171,7 @@ async def wait_for_discovery_response(
     discovery_entry_repository.update_last_requested_at(request_hash)
 
     if discovery_entry.response:
+        logger = logger.bind(last_rendered_at=discovery_entry.last_rendered_at)
         logger.debug("Returning cached response immediately")
         stats.increment(
             "v2.worker.discovery_response",
@@ -200,7 +200,9 @@ async def wait_for_discovery_response(
 
     while (
         asyncio.get_event_loop().time() - start_time
-    ) < config.cache.read_timeout and discovery_entry.response is None:
+    ) < config.cache.read_timeout and (
+        discovery_entry is None or discovery_entry.response is None
+    ):
         attempts += 1
         discovery_entry = discovery_entry_repository.get(request_hash)
         if discovery_entry is None:

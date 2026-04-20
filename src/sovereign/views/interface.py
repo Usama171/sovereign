@@ -16,7 +16,6 @@ from sovereign.configuration import XDS_TEMPLATES, ConfiguredResourceTypes, conf
 from sovereign.response_class import json_response_class
 from sovereign.utils.mock import NodeExpressionError, mock_discovery_request
 from sovereign.utils.resources import get_package_file
-from sovereign.v2.data.utils import get_context_repository_web
 from sovereign.v2.logging import get_named_logger
 from sovereign.v2.web import wait_for_discovery_response
 from sovereign.views import reader
@@ -108,9 +107,7 @@ async def resources(
 
     if config.worker_v2_enabled:
         # we're set up to use v2 of the worker
-        discovery_response = await wait_for_discovery_response(
-            mock_request, get_context_repository_web()
-        )
+        discovery_response = await wait_for_discovery_response(mock_request)
         if discovery_response is not None:
             entry = Entry(
                 text=discovery_response.model_dump_json(indent=None),
@@ -185,9 +182,7 @@ async def resource(
 
     if config.worker_v2_enabled:
         # we're set up to use v2 of the worker
-        discovery_response = await wait_for_discovery_response(
-            mock_request, get_context_repository_web()
-        )
+        discovery_response = await wait_for_discovery_response(mock_request)
         if discovery_response is not None:
             entry = Entry(
                 text=discovery_response.model_dump_json(indent=None),
@@ -251,9 +246,7 @@ async def virtual_hosts(
 
     if config.worker_v2_enabled:
         # we're set up to use v2 of the worker
-        discovery_response = await wait_for_discovery_response(
-            mock_request, get_context_repository_web()
-        )
+        discovery_response = await wait_for_discovery_response(mock_request)
         if discovery_response is not None:
             entry = Entry(
                 text=discovery_response.model_dump_json(indent=None),

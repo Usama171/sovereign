@@ -7,7 +7,6 @@ from fastapi.responses import Response
 from sovereign.cache import Entry
 from sovereign.configuration import ConfiguredResourceTypes, config
 from sovereign.utils.mock import mock_discovery_request
-from sovereign.v2.data.utils import get_context_repository_web
 from sovereign.v2.web import wait_for_discovery_response
 from sovereign.views import reader
 
@@ -60,9 +59,7 @@ async def resource(
 
     if config.worker_v2_enabled:
         # we're set up to use v2 of the worker
-        discovery_response = await wait_for_discovery_response(
-            req, get_context_repository_web()
-        )
+        discovery_response = await wait_for_discovery_response(req)
         if discovery_response is not None:
             entry = Entry(
                 text=discovery_response.model_dump_json(indent=None),

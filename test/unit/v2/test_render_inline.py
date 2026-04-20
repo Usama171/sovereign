@@ -63,7 +63,7 @@ async def test_render_inline_renders_inline(
             return_value=mock_response,
         ) as mock_render,
     ):
-        result = await wait_for_discovery_response(request, context_repository)
+        result = await wait_for_discovery_response(request)
 
     # _render_inline_in_subprocess should have been called
     mock_render.assert_called_once()
@@ -105,7 +105,7 @@ async def test_no_render_inline_uses_normal_flow(
         mock_config.cache.effective_hash_rules = lambda rt: []
         mock_config.cache.read_timeout = 0.1
         mock_config.cache.poll_interval_secs = 0.05
-        await wait_for_discovery_response(request, context_repository)
+        await wait_for_discovery_response(request)
 
     # render_template_to_response should NOT have been called directly
     mock_render.assert_not_called()
@@ -139,7 +139,7 @@ async def test_empty_render_inline_uses_normal_flow(
         mock_config.cache.effective_hash_rules = lambda rt: []
         mock_config.cache.read_timeout = 0.1
         mock_config.cache.poll_interval_secs = 0.05
-        await wait_for_discovery_response(request, context_repository)
+        await wait_for_discovery_response(request)
 
     # render_template_to_response should NOT have been called (empty string is falsy)
     mock_render.assert_not_called()
@@ -187,7 +187,7 @@ async def test_from_db_sets_immediately_in_context(
     ):
         mock_config.cache.hash_rules = []
         mock_config.cache.effective_hash_rules = lambda rt: []
-        result = await wait_for_discovery_response(request, context_repository)
+        result = await wait_for_discovery_response(request)
 
     assert result is not None
     assert result.version_info == "test_version_123"

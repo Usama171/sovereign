@@ -4,6 +4,7 @@ from collections import namedtuple
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
+from starlette.middleware.gzip import GZipMiddleware
 from starlette_context.middleware import RawContextMiddleware
 
 from sovereign import __version__, logs
@@ -65,6 +66,7 @@ def init_app() -> FastAPI:
 
     application.add_middleware(RequestContextLogMiddleware)  # type: ignore
     application.add_middleware(LoggingMiddleware)  # type: ignore
+    application.add_middleware(GZipMiddleware, minimum_size=500)  # type: ignore
 
     if dsn := config.sentry_dsn.get_secret_value():
         try:

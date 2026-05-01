@@ -1,6 +1,11 @@
 Changelog
 =========
 
+1.0.0b209 (2026-04-30)
+----------------------
+
+* feat(middleware): Add GZip compression middleware for responses >= 500 bytes
+
 1.0.0b207 (2026-04-13)
 ----------------------
 

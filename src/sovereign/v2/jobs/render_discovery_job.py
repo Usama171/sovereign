@@ -250,7 +250,12 @@ def render_discovery_response(
                 clear_rendering_started_at_best_effort()
                 return False
 
-            # Successfully saved - lock already cleared in the save above
+            # Explicitly clear the render lock as defense-in-depth.
+            # save() should clear rendering_started_at via the UPSERT, but
+            # some DataStore implementations may omit the field from serialization
+            # (e.g. the Postgres implementation's _object_to_values), leaving a
+            # stale lock that blocks subsequent render jobs for up to 600 seconds.
+            clear_rendering_started_at_best_effort()
             return True
         except Exception:
             # Only clear the lock on exception - success case clears it in save()

@@ -1,8 +1,7 @@
 sovereign
 =========
-**CAUTION:**
 
-This project is for those who do not have bitbucket account or do not use bitbucket at all. There are no changes in it from base sovereign repository. It is same as original.
+Please Note that project is for those who do not have bitbucket account or do not use bitbucket at all. There are no changes in it from base sovereign repository. It is same as original.
 --------------------------------
 Mission statement
 -----------------

@@ -1,7 +1,8 @@
 sovereign
 =========
-
-
+**NOTE
+This project is for those who do not have bitbucket account or do not use bitbucket at all. There are no changes in it from base sovereign repository. It is same as original.
+**
 Mission statement
 -----------------
 This project implements a JSON control-plane based on the [envoy](https://envoyproxy.io) [data-plane-api](https://github.com/envoyproxy/data-plane-api)
